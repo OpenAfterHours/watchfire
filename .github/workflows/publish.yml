@@ -1,0 +1,85 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@e4db8464a088ece1b920f60402e813ea4de65b8f # v4
+
+      - name: Validate version consistency
+        if: github.event_name == 'release'
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PYPROJECT_VERSION=$(grep -m1 'version = ' pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
+          INIT_VERSION=$(grep -m1 '__version__' src/regcite/__init__.py | sed 's/.*"\(.*\)".*/\1/')
+
+          echo "Release tag:    $TAG_VERSION"
+          echo "pyproject.toml: $PYPROJECT_VERSION"
+          echo "__init__.py:    $INIT_VERSION"
+
+          ERRORS=0
+          if [ "$TAG_VERSION" != "$PYPROJECT_VERSION" ]; then
+            echo "::error::Tag $TAG_VERSION != pyproject.toml $PYPROJECT_VERSION"
+            ERRORS=1
+          fi
+          if [ "$TAG_VERSION" != "$INIT_VERSION" ]; then
+            echo "::error::Tag $TAG_VERSION != __init__.py $INIT_VERSION"
+            ERRORS=1
+          fi
+          if [ "$ERRORS" -ne 0 ]; then
+            exit 1
+          fi
+          echo "All versions match $TAG_VERSION"
+
+      - name: Build package
+        run: uv build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish-testpypi:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

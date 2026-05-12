@@ -1,0 +1,20 @@
+site_name: regcite
+site_description: Static analysis for UK financial regulatory citations.
+site_url: https://OpenAfterHours.github.io/regcite/
+repo_url: https://github.com/OpenAfterHours/regcite
+repo_name: OpenAfterHours/regcite
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - content.code.copy
+
+nav:
+  - Home: index.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences

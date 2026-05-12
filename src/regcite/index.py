@@ -1,0 +1,73 @@
+"""Load the bundled rulebook index.
+
+The index is shipped inside the wheel at ``regcite/data/index.parquet``.
+For v0.1 it covers a hand-picked slice of CRR articles needed by
+``rwa_calculator``; v0.2 will broaden coverage and add diff tracking.
+
+The schema is:
+
+    instrument: Utf8         CRR | PRA_RULEBOOK | PS | SS | DELEGATED_REG
+    instrument_id: Utf8?     "PS9/24", "Credit Risk", "2018/171", or null
+    article: Int32?          Article number for article-structured instruments
+    paragraph: Int32?        Numbered paragraph within an article
+    point: Utf8?             Point label ("a", "75", ...)
+    subpoint: Utf8?          Sub-point ("ii", ...)
+    title: Utf8              Human-readable article title
+    version: Date            Pinned snapshot date
+    content_text: Utf8       Statutory text (curated summary in v0.1)
+    content_hash: Utf8       sha256 of content_text, used by `stale` in v0.2
+    url: Utf8                Source URL on legislation.gov.uk
+"""
+
+from __future__ import annotations
+
+from importlib import resources
+from pathlib import Path
+
+import polars as pl
+
+from regcite.model import Citation
+
+__all__ = ["INDEX_RESOURCE", "covers", "load_index"]
+
+INDEX_RESOURCE = ("regcite.data", "index.parquet")
+
+
+def load_index(path: str | Path | None = None) -> pl.DataFrame:
+    """Return the bundled rulebook index as a Polars DataFrame.
+
+    Args:
+        path: Optional override pointing at a parquet file with the same
+            schema. Useful for tests and for downstream users who want
+            to extend the index.
+
+    Returns:
+        A ``polars.DataFrame``. Empty rows are never present; the index
+        is small enough that loading it eagerly is fine.
+    """
+
+    if path is not None:
+        return pl.read_parquet(path)
+    resource = resources.files(INDEX_RESOURCE[0]).joinpath(INDEX_RESOURCE[1])
+    with resources.as_file(resource) as p:
+        return pl.read_parquet(p)
+
+
+def covers(index: pl.DataFrame, citation: Citation) -> bool:
+    """Return True if ``citation`` is covered by ``index``.
+
+    "Covered" means the index contains at least one row for the
+    citation's instrument and instrument_id, and — for article-structured
+    instruments — the cited article. Sub-article granularity (paragraph,
+    point) is *not* required for coverage in v0.1: a citation to
+    ``CRR Art. 153(1)(a)`` is satisfied by the presence of any row
+    referencing Article 153, because the article is what the index
+    promises to track at this stage.
+    """
+
+    df = index.filter(pl.col("instrument") == citation.instrument)
+    if citation.instrument_id is not None:
+        df = df.filter(pl.col("instrument_id") == citation.instrument_id)
+    if citation.article is not None and "article" in df.columns:
+        df = df.filter(pl.col("article") == citation.article)
+    return df.height > 0
