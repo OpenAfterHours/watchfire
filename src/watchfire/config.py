@@ -1,4 +1,4 @@
-"""Read project configuration from ``[tool.regcite]`` in ``pyproject.toml``.
+"""Read project configuration from ``[tool.watchfire]`` in ``pyproject.toml``.
 
 The shape is intentionally tiny: a rulebook version pin, an allowlist of
 instruments, and the list of source paths to scan. Defaults apply when
@@ -16,7 +16,7 @@ __all__ = ["Config", "ConfigError", "find_pyproject", "load_config"]
 
 
 class ConfigError(ValueError):
-    """Raised when ``[tool.regcite]`` is malformed."""
+    """Raised when ``[tool.watchfire]`` is malformed."""
 
 
 DEFAULT_INSTRUMENTS: tuple[str, ...] = (
@@ -31,7 +31,7 @@ DEFAULT_SOURCE_PATHS: tuple[str, ...] = ("src",)
 
 @dataclass(frozen=True)
 class Config:
-    """Resolved project configuration for ``regcite``."""
+    """Resolved project configuration for ``watchfire``."""
 
     rulebook_version: date | None = None
     instruments: tuple[str, ...] = DEFAULT_INSTRUMENTS
@@ -54,7 +54,7 @@ def find_pyproject(start: Path | None = None) -> Path | None:
 
 
 def load_config(start: Path | None = None) -> Config:
-    """Load ``[tool.regcite]`` from the nearest ``pyproject.toml``.
+    """Load ``[tool.watchfire]`` from the nearest ``pyproject.toml``.
 
     Returns a :class:`Config` populated with defaults if the file or
     section is absent. Raises :class:`ConfigError` if the section is
@@ -71,15 +71,15 @@ def load_config(start: Path | None = None) -> Config:
     except tomllib.TOMLDecodeError as exc:
         raise ConfigError(f"failed to parse {py}: {exc}") from exc
 
-    table = data.get("tool", {}).get("regcite", {})
+    table = data.get("tool", {}).get("watchfire", {})
     if not isinstance(table, dict):
-        raise ConfigError(f"[tool.regcite] in {py} must be a table")
+        raise ConfigError(f"[tool.watchfire] in {py} must be a table")
 
     known = {"rulebook_version", "instruments", "source_paths"}
     unknown = set(table) - known
     if unknown:
         raise ConfigError(
-            f"unknown keys in [tool.regcite]: {sorted(unknown)}; accepted: {sorted(known)}"
+            f"unknown keys in [tool.watchfire]: {sorted(unknown)}; accepted: {sorted(known)}"
         )
 
     version = _parse_version(table.get("rulebook_version"))

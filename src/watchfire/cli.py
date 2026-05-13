@@ -1,4 +1,4 @@
-"""Command-line entry point for ``regcite``."""
+"""Command-line entry point for ``watchfire``."""
 
 from __future__ import annotations
 
@@ -8,12 +8,12 @@ from typing import Annotated
 
 import typer
 
-from regcite import __version__
-from regcite.checks import run_check
-from regcite.config import ConfigError, load_config
+from watchfire import __version__
+from watchfire.checks import run_check
+from watchfire.config import ConfigError, load_config
 
 app = typer.Typer(
-    name="regcite",
+    name="watchfire",
     help="Static analysis for UK financial regulatory citations.",
     no_args_is_help=True,
     add_completion=False,
@@ -22,7 +22,7 @@ app = typer.Typer(
 
 def _version_callback(value: bool) -> None:
     if value:
-        typer.echo(f"regcite {__version__}")
+        typer.echo(f"watchfire {__version__}")
         raise typer.Exit()
 
 
@@ -42,7 +42,7 @@ def root(
 def check(
     paths: Annotated[
         list[Path] | None,
-        typer.Argument(help="Source paths to scan. Overrides [tool.regcite].source_paths."),
+        typer.Argument(help="Source paths to scan. Overrides [tool.watchfire].source_paths."),
     ] = None,
     project: Annotated[
         Path | None,
@@ -57,14 +57,14 @@ def check(
     try:
         config = load_config(project)
     except ConfigError as exc:
-        typer.echo(f"regcite: {exc}", err=True)
+        typer.echo(f"watchfire: {exc}", err=True)
         raise typer.Exit(code=2) from None
 
     scan_paths = paths if paths else config.absolute_source_paths()
     report = run_check(config, source_paths=scan_paths)
 
     if not report.has_findings:
-        typer.echo(f"regcite: checked {report.total_citations} citation(s); no issues found.")
+        typer.echo(f"watchfire: checked {report.total_citations} citation(s); no issues found.")
         raise typer.Exit(code=0)
 
     # Group findings by severity. Unresolved is reported but does not
@@ -80,14 +80,14 @@ def check(
 
     if failing:
         typer.echo(
-            f"regcite: {len(failing)} failing finding(s), {len(unresolved)} unresolved, "
+            f"watchfire: {len(failing)} failing finding(s), {len(unresolved)} unresolved, "
             f"out of {report.total_citations} resolved citation(s).",
             err=True,
         )
         raise typer.Exit(code=1)
 
     typer.echo(
-        f"regcite: {len(unresolved)} unresolved citation(s); "
+        f"watchfire: {len(unresolved)} unresolved citation(s); "
         f"{report.total_citations} resolved cleanly."
     )
     raise typer.Exit(code=0)

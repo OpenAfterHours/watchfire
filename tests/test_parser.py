@@ -1,6 +1,6 @@
 """Tests for the citation parser.
 
-The parser is the foundation of the project; the rest of regcite assumes
+The parser is the foundation of the project; the rest of watchfire assumes
 its output is structurally correct and its error messages are
 actionable. These tests cover every documented grammar shape, every
 abbreviation variant, common whitespace mistakes, and a representative
@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from regcite import Citation, CitationParseError, parse_citation
+from watchfire import Citation, CitationParseError, parse_citation
 
 # ---------------------------------------------------------------------------
 # CRR — happy path

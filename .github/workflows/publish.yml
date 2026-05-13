@@ -19,7 +19,7 @@ jobs:
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           PYPROJECT_VERSION=$(grep -m1 'version = ' pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
-          INIT_VERSION=$(grep -m1 '__version__' src/regcite/__init__.py | sed 's/.*"\(.*\)".*/\1/')
+          INIT_VERSION=$(grep -m1 '__version__' src/watchfire/__init__.py | sed 's/.*"\(.*\)".*/\1/')
 
           echo "Release tag:    $TAG_VERSION"
           echo "pyproject.toml: $PYPROJECT_VERSION"

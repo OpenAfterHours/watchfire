@@ -1,14 +1,14 @@
 # CLAUDE.md
 
-Notes for Claude Code working on `regcite`. The README is for end users;
+Notes for Claude Code working on `watchfire`. The README is for end users;
 this file is for contributors (human and otherwise) and captures what
 isn't obvious from reading the code.
 
 ## What this is
 
-`regcite` is a static-analysis tool for UK financial regulatory
+`watchfire` is a static-analysis tool for UK financial regulatory
 citations in Python code. Developers annotate functions with
-`@cites("CRR Art. 153(1)(a)")`; `regcite check` walks the source tree
+`@cites("CRR Art. 153(1)(a)")`; `watchfire check` walks the source tree
 and verifies the citation against a bundled, versioned snapshot of the
 rulebook. The first real consumer is `OpenAfterHours/rwa_calculator`.
 
@@ -18,12 +18,12 @@ in doubt, mirror its conventions.
 ## Scope guardrails (v0.1)
 
 In scope: citation grammar + parser, `@cites` decorator, AST walker,
-bundled CRR index, `regcite check` CLI, `[tool.regcite]` config.
+bundled CRR index, `watchfire check` CLI, `[tool.watchfire]` config.
 
 **Out of scope — do not implement until asked:**
 
-- `regcite matrix` (traceability matrix) — v0.2
-- `regcite stale` (rulebook diff vs index) — v0.2. The `version_mismatch`
+- `watchfire matrix` (traceability matrix) — v0.2
+- `watchfire stale` (rulebook diff vs index) — v0.2. The `version_mismatch`
   branch in `checks/check.py` is a placeholder for this; do not extend
   it without a v0.2 design.
 - Automated scraping of legislation.gov.uk / PRA Rulebook — v0.3+
@@ -35,15 +35,15 @@ Resist building infra around features that aren't shipping yet.
 ## Repo layout
 
 ```
-src/regcite/
+src/watchfire/
   __init__.py        public API: Citation, parse_citation, CitationParseError, cites
   model.py           Citation dataclass (frozen)
   parser.py          string -> Citation; raises CitationParseError
-  decorator.py       @cites — attaches __regcite__, no runtime wrapping
+  decorator.py       @cites — attaches __watchfire__, no runtime wrapping
   ast_walker.py      find_citations(paths) -> list[CitationFinding | ParseFailure | UnresolvedCitation]
   index.py           load_index() -> pl.DataFrame; covers(index, citation)
-  config.py          [tool.regcite] reader, returns Config
-  checks/check.py    run_check(config) — the engine behind `regcite check`
+  config.py          [tool.watchfire] reader, returns Config
+  checks/check.py    run_check(config) — the engine behind `watchfire check`
   cli.py             typer app; thin wrapper over run_check
   data/index.parquet bundled rulebook snapshot
 scripts/build_index.py   one-off rebuild of data/index.parquet
@@ -51,13 +51,13 @@ tests/                   one test_*.py per module + fixtures/sample_project
 ```
 
 The public API is exactly the four names re-exported from
-`regcite/__init__.py`. Everything else (`ast_walker`, `index`, `config`,
+`watchfire/__init__.py`. Everything else (`ast_walker`, `index`, `config`,
 `checks`, `cli`) is internal and may change.
 
 ## Key invariants — don't break these
 
 - **`@cites` is a no-op at runtime.** It stores the parsed `Citation`
-  on `func.__regcite__` and returns the function unchanged. No wrapping,
+  on `func.__watchfire__` and returns the function unchanged. No wrapping,
   no `functools.wraps`, no introspection hooks. If you find yourself
   about to wrap, stop.
 - **The parser raises on malformed input.** A citation that doesn't
@@ -103,8 +103,8 @@ uv run pytest tests/test_parser.py -v   # one file
 uv run ruff check src/ tests/    # lint
 uv run ruff format src/ tests/   # format
 uv run ruff format --check src/ tests/  # CI-style format check
-uv run ty check src/regcite/     # typecheck
-uv run regcite check             # run the CLI against the current project
+uv run ty check src/watchfire/     # typecheck
+uv run watchfire check             # run the CLI against the current project
 ```
 
 CI runs lint, ruff format check, `ty check`, and pytest across Python
@@ -132,18 +132,18 @@ code. Don't move test fixtures elsewhere expecting them to type-check.
   — a tiny synthetic project with decorated functions. Add new
   walker/check scenarios as additional files in the fixture rather than
   inlining `ast.parse` strings.
-- `regcite check` integration tests should assert exit codes and stderr
+- `watchfire check` integration tests should assert exit codes and stderr
   content, since the CLI's contract is what CI consumers depend on.
 
 ## Rebuilding the bundled index
 
 `scripts/build_index.py` is a one-off generator that writes
-`src/regcite/data/index.parquet`. Source text comes from
+`src/watchfire/data/index.parquet`. Source text comes from
 `legislation.gov.uk` (CRR is at `/eur/2013/575`). Re-run only when the
 snapshot date changes; commit the resulting parquet. There is no
 automated scrape — that is a v0.3 problem.
 
-Index schema is documented at the top of `src/regcite/index.py`. Adding
+Index schema is documented at the top of `src/watchfire/index.py`. Adding
 columns means updating the loader, the schema docstring, and any
 `covers()` logic that should now consider the new field.
 
@@ -161,7 +161,7 @@ columns means updating the loader, the schema docstring, and any
 
 ## "Done" for v0.1
 
-A downstream user can `uv add regcite`, add `[tool.regcite]` to their
+A downstream user can `uv add watchfire`, add `[tool.watchfire]` to their
 `pyproject.toml`, decorate a function with `@cites("CRR Art. 153(1)(a)")`,
-run `regcite check`, and get either a clean exit or a clear, actionable
+run `watchfire check`, and get either a clean exit or a clear, actionable
 error. That's the bar. Everything else is v0.2+.

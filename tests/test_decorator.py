@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from regcite import Citation, CitationParseError, cites, parse_citation
+from watchfire import Citation, CitationParseError, cites, parse_citation
 
 
 class TestDecoratorBasics:
@@ -13,8 +13,8 @@ class TestDecoratorBasics:
         def f():
             return 1
 
-        assert isinstance(f.__regcite__, Citation)
-        assert f.__regcite__ == parse_citation("CRR Art. 153(1)(a)")
+        assert isinstance(f.__watchfire__, Citation)
+        assert f.__watchfire__ == parse_citation("CRR Art. 153(1)(a)")
 
     def test_attaches_pre_built_citation(self):
         c = Citation(instrument="CRR", article=153)
@@ -23,7 +23,7 @@ class TestDecoratorBasics:
         def f():
             return 1
 
-        assert f.__regcite__ is c
+        assert f.__watchfire__ is c
 
     def test_function_returns_unchanged(self):
         @cites("CRR Art. 153")
@@ -76,11 +76,11 @@ class TestDecoratorErrors:
 class TestMultipleDecorations:
     def test_multiple_citations_last_wins(self):
         # Stacking @cites is supported but only the outermost survives
-        # on __regcite__ — see ast_walker for what scanning reports.
+        # on __watchfire__ — see ast_walker for what scanning reports.
         @cites("CRR Art. 153")
         @cites("CRR Art. 154")
         def f():
             pass
 
         # Outermost decorator applied last, so it overwrites.
-        assert f.__regcite__.article == 153
+        assert f.__watchfire__.article == 153

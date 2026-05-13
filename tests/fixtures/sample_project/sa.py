@@ -1,6 +1,6 @@
 """Standardised approach — a small slice of what rwa_calculator does."""
 
-from regcite import cites
+from watchfire import cites
 
 
 @cites("CRR Art. 113")

@@ -7,8 +7,8 @@ from datetime import date
 import polars as pl
 import pytest
 
-from regcite import Citation, parse_citation
-from regcite.index import covers, load_index
+from watchfire import Citation, parse_citation
+from watchfire.index import covers, load_index
 
 EXPECTED_ARTICLES = {4, 92, 107, 111, 113, 114, 142, 143, 153, 154, 166}
 

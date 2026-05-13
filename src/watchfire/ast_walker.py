@@ -17,8 +17,8 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from regcite.model import Citation
-from regcite.parser import CitationParseError, parse_citation
+from watchfire.model import Citation
+from watchfire.parser import CitationParseError, parse_citation
 
 __all__ = [
     "CitationFinding",
@@ -174,13 +174,13 @@ def _interpret_decorator(
         function=func.name,
         reason=(
             "@cites argument is not a literal string or Citation(...) "
-            "constructor call; regcite cannot resolve it statically"
+            "constructor call; watchfire cannot resolve it statically"
         ),
     )
 
 
 def _is_cites_name(node: ast.expr) -> bool:
-    # Match ``@cites(...)`` or ``@regcite.cites(...)``.
+    # Match ``@cites(...)`` or ``@watchfire.cites(...)``.
     if isinstance(node, ast.Name):
         return node.id == "cites"
     if isinstance(node, ast.Attribute):

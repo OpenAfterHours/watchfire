@@ -1,5 +1,5 @@
 [project]
-name = "regcite"
+name = "watchfire"
 version = "0.1.0"
 description = "Static analysis for UK financial regulatory citations in Python code."
 readme = "README.md"
@@ -42,13 +42,13 @@ dependencies = [
 ]
 
 [project.scripts]
-regcite = "regcite.cli:app"
+watchfire = "watchfire.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/OpenAfterHours/regcite"
-Repository = "https://github.com/OpenAfterHours/regcite.git"
-Issues = "https://github.com/OpenAfterHours/regcite/issues"
-Changelog = "https://github.com/OpenAfterHours/regcite/blob/master/CHANGELOG.md"
+Homepage = "https://github.com/OpenAfterHours/watchfire"
+Repository = "https://github.com/OpenAfterHours/watchfire.git"
+Issues = "https://github.com/OpenAfterHours/watchfire/issues"
+Changelog = "https://github.com/OpenAfterHours/watchfire/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
@@ -66,9 +66,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/regcite"]
+packages = ["src/watchfire"]
 # data/index.parquet is bundled in the wheel via the default hatchling
-# package-include behaviour (it lives under src/regcite/).
+# package-include behaviour (it lives under src/watchfire/).
 
 [tool.ruff]
 target-version = "py311"
@@ -93,12 +93,12 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["T20"]
-"src/regcite/cli.py" = ["T20"]
-"src/regcite/checks/**" = ["T20"]
+"src/watchfire/cli.py" = ["T20"]
+"src/watchfire/checks/**" = ["T20"]
 "scripts/**" = ["T20"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["regcite"]
+known-first-party = ["watchfire"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
@@ -108,7 +108,7 @@ python_functions = ["test_*"]
 addopts = "-v --tb=short"
 
 [tool.coverage.run]
-source = ["src/regcite"]
+source = ["src/watchfire"]
 branch = true
 
 [tool.coverage.report]
@@ -124,9 +124,9 @@ python-version = "3.11"
 [tool.ty.src]
 exclude = ["tests/fixtures/"]
 
-# Project-level defaults consumed by `regcite check` itself.
-# Downstream projects that depend on regcite add their own [tool.regcite] table.
-[tool.regcite]
+# Project-level defaults consumed by `watchfire check` itself.
+# Downstream projects that depend on watchfire add their own [tool.watchfire] table.
+[tool.watchfire]
 rulebook_version = "2024-07-09"
 instruments = ["CRR", "PRA_RULEBOOK", "PS", "SS", "DELEGATED_REG"]
 source_paths = ["src"]

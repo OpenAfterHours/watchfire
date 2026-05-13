@@ -1,8 +1,8 @@
-"""The ``regcite check`` command.
+"""The ``watchfire check`` command.
 
 Walks a project, parses every ``@cites`` decorator it finds, looks each
 citation up in the bundled index, and bucketed-reports the result. The
-CLI in :mod:`regcite.cli` is a thin wrapper around :func:`run_check`.
+CLI in :mod:`watchfire.cli` is a thin wrapper around :func:`run_check`.
 
 Version-pin checking is reserved for v0.2; the placeholder is here so
 the CLI surface and exit-code policy don't shift between releases.
@@ -16,21 +16,21 @@ from pathlib import Path
 
 import polars as pl
 
-from regcite.ast_walker import (
+from watchfire.ast_walker import (
     CitationFinding,
     ParseFailure,
     UnresolvedCitation,
     find_citations,
 )
-from regcite.config import Config
-from regcite.index import covers, load_index
+from watchfire.config import Config
+from watchfire.index import covers, load_index
 
 __all__ = ["CheckReport", "CheckResult", "run_check"]
 
 
 @dataclass(frozen=True)
 class CheckResult:
-    """One reportable finding from ``regcite check``."""
+    """One reportable finding from ``watchfire check``."""
 
     kind: (
         str  # parse_failure | unknown_instrument | unknown_article | unresolved | version_mismatch
@@ -43,7 +43,7 @@ class CheckResult:
 
 @dataclass(frozen=True)
 class CheckReport:
-    """Aggregate result of a ``regcite check`` run."""
+    """Aggregate result of a ``watchfire check`` run."""
 
     results: list[CheckResult] = field(default_factory=list)
     total_citations: int = 0
@@ -117,7 +117,7 @@ def run_check(
                     line=finding.line,
                     function=finding.function,
                     message=(
-                        f"instrument {c.instrument!r} is not in [tool.regcite].instruments "
+                        f"instrument {c.instrument!r} is not in [tool.watchfire].instruments "
                         f"({list(config.instruments)})"
                     ),
                 )

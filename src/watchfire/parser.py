@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 
-from regcite.model import Citation
+from watchfire.model import Citation
 
 __all__ = ["CitationParseError", "parse_citation"]
 
@@ -20,7 +20,7 @@ class CitationParseError(ValueError):
     """Raised when a citation string cannot be parsed.
 
     The exception message always contains the offending input, quoted,
-    and a short reason. ``regcite check`` surfaces these directly so
+    and a short reason. ``watchfire check`` surfaces these directly so
     fixing a bad citation is a question of reading the message.
     """
 

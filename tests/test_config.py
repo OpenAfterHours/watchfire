@@ -1,4 +1,4 @@
-"""Tests for ``[tool.regcite]`` config parsing."""
+"""Tests for ``[tool.watchfire]`` config parsing."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from datetime import date
 
 import pytest
 
-from regcite.config import (
+from watchfire.config import (
     DEFAULT_INSTRUMENTS,
     DEFAULT_SOURCE_PATHS,
     Config,
@@ -55,7 +55,7 @@ class TestLoadConfig:
     def test_full_config_parsed(self, project):
         root = project(
             "[project]\nname = 'x'\n\n"
-            "[tool.regcite]\n"
+            "[tool.watchfire]\n"
             "rulebook_version = '2024-07-09'\n"
             "instruments = ['CRR', 'PRA_RULEBOOK']\n"
             "source_paths = ['src', 'pkg']\n"
@@ -68,27 +68,27 @@ class TestLoadConfig:
 
     def test_inline_date(self, project):
         # TOML supports native dates without quotes.
-        root = project("[tool.regcite]\nrulebook_version = 2024-07-09\n")
+        root = project("[tool.watchfire]\nrulebook_version = 2024-07-09\n")
         cfg = load_config(root)
         assert cfg.rulebook_version == date(2024, 7, 9)
 
     def test_unknown_key_errors(self, project):
-        root = project("[tool.regcite]\nfoo = 'bar'\n")
+        root = project("[tool.watchfire]\nfoo = 'bar'\n")
         with pytest.raises(ConfigError, match="unknown keys"):
             load_config(root)
 
     def test_bad_version_errors(self, project):
-        root = project("[tool.regcite]\nrulebook_version = 'yesterday'\n")
+        root = project("[tool.watchfire]\nrulebook_version = 'yesterday'\n")
         with pytest.raises(ConfigError, match="ISO-8601"):
             load_config(root)
 
     def test_instruments_must_be_list(self, project):
-        root = project("[tool.regcite]\ninstruments = 'CRR'\n")
+        root = project("[tool.watchfire]\ninstruments = 'CRR'\n")
         with pytest.raises(ConfigError, match="instruments must be a list"):
             load_config(root)
 
     def test_absolute_source_paths(self, project):
-        root = project("[tool.regcite]\nsource_paths = ['src', 'tests']\n")
+        root = project("[tool.watchfire]\nsource_paths = ['src', 'tests']\n")
         cfg = load_config(root)
         absolute = cfg.absolute_source_paths()
         assert absolute == [root / "src", root / "tests"]

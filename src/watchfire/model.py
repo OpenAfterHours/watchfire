@@ -28,7 +28,7 @@ Instrument = Literal[
 class Citation:
     """A structured citation to a regulatory instrument.
 
-    Use :func:`regcite.parse_citation` to construct one from a string;
+    Use :func:`watchfire.parse_citation` to construct one from a string;
     construct directly only when the structured form is more convenient
     than the canonical text.
 
@@ -53,7 +53,7 @@ class Citation:
             phrases like "the second subparagraph of paragraph 1").
         version: Pinned version of the instrument the citation was
             written against. If ``None`` the citation inherits the
-            project pin from ``[tool.regcite]``.
+            project pin from ``[tool.watchfire]``.
     """
 
     instrument: Instrument
@@ -106,7 +106,7 @@ class Citation:
     def is_more_specific_than(self, other: Citation) -> bool:
         """True if this citation refines ``other`` (same target, deeper).
 
-        Useful for ``regcite check`` when matching a citation against the
+        Useful for ``watchfire check`` when matching a citation against the
         index: a citation to a paragraph implies coverage of the article.
         """
 

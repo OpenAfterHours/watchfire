@@ -1,6 +1,6 @@
 """Dynamic and malformed citations — used to exercise reporting paths."""
 
-from regcite import Citation, cites
+from watchfire import Citation, cites
 
 article_number = 153
 

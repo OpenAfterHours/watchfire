@@ -1,4 +1,4 @@
-"""Tests for ``regcite check`` — the check logic and the CLI command."""
+"""Tests for ``watchfire check`` — the check logic and the CLI command."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from regcite.checks import run_check
-from regcite.cli import app
-from regcite.config import Config
+from watchfire.checks import run_check
+from watchfire.cli import app
+from watchfire.config import Config
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "sample_project"
 
@@ -30,7 +30,7 @@ def clean_project(tmp_path):
     shutil.copy(FIXTURE_ROOT / "irb.py", pkg / "irb.py")
     (tmp_path / "pyproject.toml").write_text(
         "[project]\nname='myproj'\n\n"
-        "[tool.regcite]\n"
+        "[tool.watchfire]\n"
         "rulebook_version = '2024-07-09'\n"
         "instruments = ['CRR', 'PRA_RULEBOOK', 'PS', 'SS']\n"
         "source_paths = ['src']\n"
@@ -47,7 +47,7 @@ def dirty_project(tmp_path):
     shutil.copy(FIXTURE_ROOT / "sa.py", pkg / "sa.py")
     shutil.copy(FIXTURE_ROOT / "dynamic.py", pkg / "dynamic.py")
     (tmp_path / "pyproject.toml").write_text(
-        "[project]\nname='myproj'\n\n[tool.regcite]\nsource_paths = ['src']\n"
+        "[project]\nname='myproj'\n\n[tool.watchfire]\nsource_paths = ['src']\n"
     )
     return tmp_path
 
@@ -59,10 +59,10 @@ def unknown_article_project(tmp_path):
     pkg.mkdir(parents=True)
     (pkg / "__init__.py").write_text("")
     (pkg / "exotic.py").write_text(
-        "from regcite import cites\n\n@cites('CRR Art. 999')\ndef f():\n    pass\n"
+        "from watchfire import cites\n\n@cites('CRR Art. 999')\ndef f():\n    pass\n"
     )
     (tmp_path / "pyproject.toml").write_text(
-        "[project]\nname='myproj'\n\n[tool.regcite]\nsource_paths = ['src']\n"
+        "[project]\nname='myproj'\n\n[tool.watchfire]\nsource_paths = ['src']\n"
     )
     return tmp_path
 
@@ -139,7 +139,7 @@ class TestCli:
     def test_version_flag(self, runner):
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == 0
-        assert "regcite " in result.stdout
+        assert "watchfire " in result.stdout
 
     def test_explicit_paths_argument(self, runner, clean_project):
         result = runner.invoke(

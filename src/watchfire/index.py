@@ -1,6 +1,6 @@
 """Load the bundled rulebook index.
 
-The index is shipped inside the wheel at ``regcite/data/index.parquet``.
+The index is shipped inside the wheel at ``watchfire/data/index.parquet``.
 For v0.1 it covers a hand-picked slice of CRR articles needed by
 ``rwa_calculator``; v0.2 will broaden coverage and add diff tracking.
 
@@ -26,11 +26,11 @@ from pathlib import Path
 
 import polars as pl
 
-from regcite.model import Citation
+from watchfire.model import Citation
 
 __all__ = ["INDEX_RESOURCE", "covers", "load_index"]
 
-INDEX_RESOURCE = ("regcite.data", "index.parquet")
+INDEX_RESOURCE = ("watchfire.data", "index.parquet")
 
 
 def load_index(path: str | Path | None = None) -> pl.DataFrame:

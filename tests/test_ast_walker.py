@@ -1,6 +1,6 @@
 """Tests for the AST walker.
 
-The walker is what powers ``regcite check`` — getting line numbers,
+The walker is what powers ``watchfire check`` — getting line numbers,
 function names, and the resolved/unresolved/malformed bucketing right
 matters because those are the things a user sees in error messages.
 """
@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from regcite import Citation
-from regcite.ast_walker import (
+from watchfire import Citation
+from watchfire.ast_walker import (
     CitationFinding,
     ParseFailure,
     UnresolvedCitation,
@@ -47,7 +47,7 @@ class TestSAFile:
 
 class TestIRBFile:
     def test_finds_qualified_decorator(self):
-        # irb.py uses `@regcite.cites(...)` rather than the bare name.
+        # irb.py uses `@watchfire.cites(...)` rather than the bare name.
         findings = find_citations([FIXTURE_ROOT / "irb.py"])
         successes = [f for f in findings if isinstance(f, CitationFinding)]
         assert len(successes) == 4
@@ -122,7 +122,7 @@ class TestStaticOnly:
         # still parse it and find the decorator.
         bad = tmp_path / "boom.py"
         bad.write_text(
-            "from regcite import cites\n"
+            "from watchfire import cites\n"
             "raise RuntimeError('importing me would explode')\n"
             "@cites('CRR Art. 92')\n"
             "def f():\n"

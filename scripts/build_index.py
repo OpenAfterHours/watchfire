@@ -1,7 +1,7 @@
 """Hand-curated CRR index builder.
 
-This script writes ``src/regcite/data/index.parquet``, which is shipped
-inside the wheel and consulted by ``regcite check``.
+This script writes ``src/watchfire/data/index.parquet``, which is shipped
+inside the wheel and consulted by ``watchfire check``.
 
 For v0.1 we do not scrape ``legislation.gov.uk`` — the data here is
 hand-curated against the on-shored CRR snapshot dated 2024-07-09. Each
@@ -27,7 +27,7 @@ import polars as pl
 SNAPSHOT_VERSION = date(2024, 7, 9)
 BASE_URL = "https://www.legislation.gov.uk/eur/2013/575/article"
 
-OUTPUT = Path(__file__).resolve().parents[1] / "src" / "regcite" / "data" / "index.parquet"
+OUTPUT = Path(__file__).resolve().parents[1] / "src" / "watchfire" / "data" / "index.parquet"
 
 
 @dataclass(frozen=True)

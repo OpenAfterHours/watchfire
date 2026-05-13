@@ -1,8 +1,8 @@
-site_name: regcite
+site_name: watchfire
 site_description: Static analysis for UK financial regulatory citations.
-site_url: https://OpenAfterHours.github.io/regcite/
-repo_url: https://github.com/OpenAfterHours/regcite
-repo_name: OpenAfterHours/regcite
+site_url: https://OpenAfterHours.github.io/watchfire/
+repo_url: https://github.com/OpenAfterHours/watchfire
+repo_name: OpenAfterHours/watchfire
 
 theme:
   name: material

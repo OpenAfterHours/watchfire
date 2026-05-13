@@ -42,7 +42,7 @@ jobs:
         run: uv sync --extra dev
 
       - name: ty
-        run: uv run ty check src/regcite/
+        run: uv run ty check src/watchfire/
 
   test:
     name: Tests (Python ${{ matrix.python-version }})
