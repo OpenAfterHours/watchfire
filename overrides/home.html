@@ -1,0 +1,29 @@
+{% extends "main.html" %}
+
+{# Landing page template — strips Zensical chrome so the bespoke
+   landing renders edge-to-edge. The page-level CSS and JS are
+   loaded only here so they don't leak onto themed docs pages. #}
+
+{% block site_meta %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ 'stylesheets/landing.css' | url }}">
+{% endblock %}
+
+{% block header %}{% endblock %}
+{% block tabs %}{% endblock %}
+{% block hero %}{% endblock %}
+{% block announce %}{% endblock %}
+
+{% block container %}
+  <main class="watchfire-landing-main">
+    {{ page.content }}
+  </main>
+{% endblock %}
+
+{% block footer %}{% endblock %}
+{% block site_nav %}{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script src="{{ 'javascripts/landing.js' | url }}"></script>
+{% endblock %}

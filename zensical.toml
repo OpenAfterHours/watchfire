@@ -1,0 +1,51 @@
+[project]
+site_name = "watchfire"
+site_description = "Static analysis for UK financial regulatory citations in Python code."
+site_author = "OpenAfterHours"
+site_url = "https://OpenAfterHours.github.io/watchfire/"
+repo_url = "https://github.com/OpenAfterHours/watchfire"
+repo_name = "OpenAfterHours/watchfire"
+copyright = "Apache-2.0 &copy; OpenAfterHours"
+
+nav = [
+  { "Home" = "index.md" },
+]
+
+extra_css = [
+  "stylesheets/colors_and_type.css",
+]
+
+# Landing-specific CSS/JS are loaded from overrides/home.html so they only
+# apply to the landing page, not to every docs page on the site.
+
+[project.theme]
+custom_dir = "overrides"
+favicon = "assets/openafterhours_icon_512.png"
+language = "en"
+
+# Disable the default chrome/announce-dismiss features that would clash with
+# the bespoke landing layout. The landing page renders its own nav and footer.
+features = [
+  "content.code.copy",
+  "navigation.instant",
+  "navigation.tracking",
+]
+
+[project.theme.font]
+text = "Inter"
+code = "JetBrains Mono"
+
+[[project.theme.palette]]
+scheme = "slate"
+
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.attr_list]
+[project.markdown_extensions.md_in_html]
+[project.markdown_extensions.toc]
+permalink = true
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+line_spans = "__span"
+pygments_lang_class = true
+[project.markdown_extensions.pymdownx.inlinehilite]
+[project.markdown_extensions.pymdownx.superfences]
