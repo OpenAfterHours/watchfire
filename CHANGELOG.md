@@ -6,6 +6,17 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `watchfire matrix` CLI command: builds a traceability matrix mapping
+  citations back to the functions that cite them. Supports `--format
+  {text,markdown,json}`, `--specificity {article,full}`, and
+  `--instrument` / `--article` filters. Exits 0 unconditionally — the
+  matrix is an audit artifact, not a gate.
+- `watchfire.index.title_for(index, citation)`: looks up the
+  human-readable article title in the bundled index. Reused by
+  `watchfire matrix` to label each entry.
+
 ## [0.1.0] — 2026-05-12
 
 Initial release. Establishes the citation grammar, the `@cites` decorator,

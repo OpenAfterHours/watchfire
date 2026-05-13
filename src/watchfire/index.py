@@ -28,7 +28,7 @@ import polars as pl
 
 from watchfire.model import Citation
 
-__all__ = ["INDEX_RESOURCE", "covers", "load_index"]
+__all__ = ["INDEX_RESOURCE", "covers", "load_index", "title_for"]
 
 INDEX_RESOURCE = ("watchfire.data", "index.parquet")
 
@@ -71,3 +71,23 @@ def covers(index: pl.DataFrame, citation: Citation) -> bool:
     if citation.article is not None and "article" in df.columns:
         df = df.filter(pl.col("article") == citation.article)
     return df.height > 0
+
+
+def title_for(index: pl.DataFrame, citation: Citation) -> str | None:
+    """Return the index ``title`` for the article matching ``citation``, or ``None``.
+
+    Matches on the same instrument/instrument_id/article triple that
+    :func:`covers` uses. If multiple rows match (sub-article granularity),
+    the first row's title is returned — for v0.1 every row in a given
+    article shares the same title. Returns ``None`` if no row matches.
+    """
+
+    df = index.filter(pl.col("instrument") == citation.instrument)
+    if citation.instrument_id is not None:
+        df = df.filter(pl.col("instrument_id") == citation.instrument_id)
+    if citation.article is not None and "article" in df.columns:
+        df = df.filter(pl.col("article") == citation.article)
+    if df.height == 0 or "title" not in df.columns:
+        return None
+    value = df.select("title").row(0)[0]
+    return value if isinstance(value, str) else None
