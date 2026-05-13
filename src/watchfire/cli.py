@@ -11,6 +11,12 @@ import typer
 from watchfire import __version__
 from watchfire.checks import run_check
 from watchfire.config import ConfigError, load_config
+from watchfire.matrix import (
+    render_json,
+    render_markdown,
+    render_text,
+    run_matrix,
+)
 
 app = typer.Typer(
     name="watchfire",
@@ -90,6 +96,87 @@ def check(
         f"watchfire: {len(unresolved)} unresolved citation(s); "
         f"{report.total_citations} resolved cleanly."
     )
+    raise typer.Exit(code=0)
+
+
+@app.command("matrix")
+def matrix(
+    paths: Annotated[
+        list[Path] | None,
+        typer.Argument(help="Source paths to scan. Overrides [tool.watchfire].source_paths."),
+    ] = None,
+    project: Annotated[
+        Path | None,
+        typer.Option(
+            "--project",
+            help="Directory containing pyproject.toml. Defaults to the current working directory.",
+        ),
+    ] = None,
+    output_format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            help="Output format: text (default), markdown, or json.",
+        ),
+    ] = "text",
+    specificity: Annotated[
+        str,
+        typer.Option(
+            "--specificity",
+            help="article (default) rolls up sub-article detail; full keeps every distinct citation.",
+        ),
+    ] = "article",
+    instrument: Annotated[
+        str | None,
+        typer.Option(
+            "--instrument",
+            help="Filter to entries with this instrument (e.g. CRR).",
+        ),
+    ] = None,
+    article: Annotated[
+        int | None,
+        typer.Option(
+            "--article",
+            help="Filter to entries with this article number.",
+        ),
+    ] = None,
+) -> None:
+    """Build a traceability matrix mapping citations back to functions."""
+
+    if output_format not in {"text", "markdown", "json"}:
+        typer.echo(
+            f"watchfire: --format must be text, markdown, or json (got {output_format!r})",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+    if specificity not in {"article", "full"}:
+        typer.echo(
+            f"watchfire: --specificity must be article or full (got {specificity!r})",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        config = load_config(project)
+    except ConfigError as exc:
+        typer.echo(f"watchfire: {exc}", err=True)
+        raise typer.Exit(code=2) from None
+
+    scan_paths = paths if paths else config.absolute_source_paths()
+    report = run_matrix(
+        config,
+        source_paths=scan_paths,
+        specificity=specificity,  # ty: ignore[invalid-argument-type]
+        instrument_filter=instrument,
+        article_filter=article,
+    )
+
+    if output_format == "markdown":
+        typer.echo(render_markdown(report, project_root=config.project_root))
+    elif output_format == "json":
+        typer.echo(render_json(report, project_root=config.project_root, config=config))
+    else:
+        typer.echo(render_text(report, project_root=config.project_root))
     raise typer.Exit(code=0)
 
 

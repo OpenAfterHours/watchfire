@@ -81,6 +81,44 @@ watchfire: 1 failing finding(s), 0 unresolved, out of 12 resolved citation(s).
 function as `__watchfire__` and returns the function unchanged. No
 wrapping, no overhead, nothing to debug.
 
+## Traceability matrix
+
+`watchfire matrix` is the reverse lookup: given a project full of
+decorated functions, group every citation by its article and list the
+functions that cite it. The output is intended as an audit deliverable —
+attach it to a PR or commit it as a CI artifact.
+
+```bash
+$ uv run watchfire matrix
+CRR Art. 4(1)(75)                        Definitions: corporate           1 site
+  src/myproj/irb.py:21  is_corporate
+
+CRR Art. 113                             SA risk weights                  1 site
+  src/myproj/sa.py:6   calculate_sa_rwa
+
+CRR Art. 153                             IRB risk weights                 1 site
+  src/myproj/irb.py:7   corporate_rw     CRR Art. 153(1)(a)
+
+SS1/23, paragraph 2.5                    (not in index)                   1 site
+  src/myproj/irb.py:17  model_validation
+
+watchfire matrix: 4 entries, 4 citation sites across 4 functions.
+```
+
+Useful flags:
+
+- `--format {text,markdown,json}` — `markdown` produces a copy-paste
+  table for PR comments; `json` is for downstream tooling.
+- `--specificity {article,full}` — default `article` collapses
+  sub-paragraph detail into one row per article. Use `full` for the
+  audit-grade view that keeps `(1)(a)` separate from `(1)(b)`.
+- `--instrument CRR --article 153` — narrow to one article. Answers
+  "which functions cite Art. 153?".
+
+`watchfire matrix` exits 0 unconditionally; it's informational. Parse
+failures and unresolved citations are counted in the footer — fix them
+with `watchfire check`.
+
 ## Citation grammar
 
 The parser accepts canonical UK regulatory citation strings. The shape
