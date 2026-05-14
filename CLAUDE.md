@@ -26,7 +26,9 @@ bundled CRR index, `watchfire check` CLI, `[tool.watchfire]` config.
 - `watchfire stale` (rulebook diff vs index) — v0.2. The `version_mismatch`
   branch in `checks/check.py` is a placeholder for this; do not extend
   it without a v0.2 design.
-- Automated scraping of legislation.gov.uk / PRA Rulebook — v0.3+
+- Automated scraping of the PRA Rulebook and Delegated Regulations — v0.3+.
+  CRR scraping landed in v0.2 (see `scripts/build_index/`); SS / PS PDFs
+  use a curated seed list with an opt-in PDF parser, not a live fetch.
 - Test-to-citation mapping, coverage heuristics — later
 
 The grammar and decorator surface are the things to get right first.
@@ -73,9 +75,14 @@ The public API is exactly the four names re-exported from
 - **`unresolved` findings do not fail the check.** They print but exit 0.
   Only `parse_failure`, `unknown_instrument`, `unknown_article`, and
   `version_mismatch` are failing kinds. Don't conflate.
-- **The bundled index is hand-curated for v0.1.** Don't add a runtime
-  fetch path; if the index needs updating, rerun `scripts/build_index.py`
-  and commit the parquet.
+- **The bundled index is built at build time, never at runtime.** CRR
+  rows are scraped from legislation.gov.uk by `scripts/build_index/`
+  (requires the `build` extra). The runtime never re-fetches. If the
+  index needs updating, rerun `python -m scripts.build_index` and commit
+  both the parquet and the sidecar `data/index.manifest.json`.
+- **`section` (Utf8?) is the SS/PS column.** PRA SS / PS rows store the
+  dotted paragraph path (`"2.5.1"`) in `section`; CRR rows leave it
+  null. The flat `paragraph` / `point` / `subpoint` columns are CRR's.
 
 ## Citation grammar — the shape
 
@@ -137,14 +144,35 @@ code. Don't move test fixtures elsewhere expecting them to type-check.
 
 ## Rebuilding the bundled index
 
-`scripts/build_index.py` is a one-off generator that writes
-`src/watchfire/data/index.parquet`. Source text comes from
-`legislation.gov.uk` (CRR is at `/eur/2013/575`). Re-run only when the
-snapshot date changes; commit the resulting parquet. There is no
-automated scrape — that is a v0.3 problem.
+The builder lives in the `scripts/build_index/` package. Install the
+build deps once: `uv sync --extra build`. Then:
 
-Index schema is documented at the top of `src/watchfire/index.py`. Adding
-columns means updating the loader, the schema docstring, and any
+```bash
+uv run python -m scripts.build_index            # full rebuild (CRR + PRA)
+uv run python -m scripts.build_index --only crr # CRR only
+uv run python -m scripts.build_index --refresh  # bypass HTTP cache
+```
+
+`crr.py` scrapes CLML XML from `legislation.gov.uk` (CRR at
+`/eur/2013/575`), walking `P1` (article) -> `P2` (paragraph) -> `P3`
+or `OrderedList/ListItem` (points). XML responses are cached at
+`.cache/legislation/` (gitignored); reruns are fast and offline.
+
+`pra.py` keeps a curated `PRA_SOURCES` seed list (id, title, url). The
+Bank of England blocks automated PDF fetching, so paragraph-level rows
+are opt-in: drop a downloaded PDF into `scripts/build_index/pra_pdfs/`
+(gitignored) and rerun — `pypdf` extracts dotted section paragraphs
+into rows.
+
+Outputs:
+
+- `src/watchfire/data/index.parquet` — the index, shipped in the wheel.
+- `src/watchfire/data/index.manifest.json` — snapshot date, per-instrument
+  row counts, source TOC URL, git SHA. Commit both.
+
+Index schema is documented at the top of `src/watchfire/index.py`.
+Adding columns means updating the loader docstring, the schema dict in
+`scripts/build_index/schema.py`, the `Row` dataclass, and any
 `covers()` logic that should now consider the new field.
 
 ## Style

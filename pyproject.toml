@@ -1,6 +1,6 @@
 [project]
 name = "watchfire"
-version = "0.1.0"
+version = "0.2.0"
 description = "Static analysis for UK financial regulatory citations in Python code."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -58,6 +58,13 @@ dev = [
     "ruff>=0.3.0",
     "ty",
     "zensical>=0.0.41",
+]
+# Build-time deps for rebuilding src/watchfire/data/index.parquet via
+# scripts/build_index. NOT runtime — the parquet is committed and shipped.
+build = [
+    "httpx>=0.27.0",
+    "lxml>=5.0.0",
+    "pypdf>=4.0.0",
 ]
 
 [build-system]

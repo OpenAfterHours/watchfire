@@ -1,8 +1,10 @@
 """Load the bundled rulebook index.
 
 The index is shipped inside the wheel at ``watchfire/data/index.parquet``.
-For v0.1 it covers a hand-picked slice of CRR articles needed by
-``rwa_calculator``; v0.2 will broaden coverage and add diff tracking.
+From v0.2 it covers the full UK-retained CRR (Regulation EU 575/2013)
+scraped from legislation.gov.uk at build time, plus curated PRA SS / PS
+and PRA Rulebook entries. The runtime never re-fetches; rebuilding goes
+through ``python -m scripts.build_index`` (requires the ``build`` extra).
 
 The schema is:
 
@@ -12,9 +14,10 @@ The schema is:
     paragraph: Int32?        Numbered paragraph within an article
     point: Utf8?             Point label ("a", "75", ...)
     subpoint: Utf8?          Sub-point ("ii", ...)
+    section: Utf8?           Dotted section path for PRA SS/PS, e.g. "2.5.1"
     title: Utf8              Human-readable article title
     version: Date            Pinned snapshot date
-    content_text: Utf8       Statutory text (curated summary in v0.1)
+    content_text: Utf8       Statutory text from the source document
     content_hash: Utf8       sha256 of content_text, used by `stale` in v0.2
     url: Utf8                Source URL on legislation.gov.uk
 """
