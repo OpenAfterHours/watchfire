@@ -37,13 +37,19 @@ class Citation:
         instrument_id: Identifier within the instrument class. ``"PS9/24"``
             for a Policy Statement, ``"Credit Risk"`` for a PRA Rulebook
             part. ``None`` for CRR (there is only one).
-        article: Article number, for article-structured instruments
-            (CRR, Delegated Regulations).
+        article: Article identifier for article-structured instruments
+            (CRR, Delegated Regulations). A string so that inserted
+            articles with letter suffixes (e.g. ``"92a"``) are
+            representable; pure-numeric values are stored as digit
+            strings (``"153"``).
         section: Hierarchical section path, used by the PRA Rulebook and
-            by Supervisory/Policy Statements with numeric paragraph
-            references like ``2.5``. ``(2, 5)`` corresponds to ``"2.5"``.
+            by Supervisory/Policy Statements. ``("2", "5")`` corresponds
+            to ``"2.5"``; PS/SS segments may carry a letter suffix
+            (``"123B"``).
         paragraph: Numbered paragraph within an article (the first level
-            of parenthesised numbering in CRR).
+            of parenthesised numbering in CRR). String-valued for the
+            same reason as ``article``: rare alphanumeric forms like
+            ``"1a"`` are valid.
         point: Sub-paragraph reference. Most commonly an alphabetic
             letter (``"a"``), but CRR Article 4(1)(75) uses numeric
             points for definitions, so this is a string.
@@ -58,9 +64,9 @@ class Citation:
 
     instrument: Instrument
     instrument_id: str | None = None
-    article: int | None = None
-    section: tuple[int, ...] | None = None
-    paragraph: int | None = None
+    article: str | None = None
+    section: tuple[str, ...] | None = None
+    paragraph: str | None = None
     point: str | None = None
     subpoint: str | None = None
     subparagraph: int | None = None

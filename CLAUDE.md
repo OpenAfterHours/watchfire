@@ -98,9 +98,21 @@ Instrument literal (`model.Instrument`): `CRR`, `PRA_RULEBOOK`, `PS`,
 the parser dispatch, `Citation.canonical()`, the README grammar table,
 the config `DEFAULT_INSTRUMENTS`, and the index schema docstring.
 
-`point` is a `str | None`, not an `int`. CRR Art. 4(1)(75) uses numeric
-points (`"75"`) for definitions; alphabetic and numeric points share
-the same field.
+`article`, `paragraph`, `point`, and `subpoint` are all `str | None`,
+not `int`. Digit-only values are stored as digit strings (`"153"`,
+`"1"`); letter-suffixed forms — `"92a"` (inserted article), `"1a"`
+(inserted paragraph) — fit in the same field. `section` is
+`tuple[str, ...] | None` for the same reason: PS/SS paragraph IDs like
+`("123B",)` need string segments. PRA Rulebook section paths are
+digits-only but still stored as `tuple[str, ...]` for type uniformity.
+
+The bundled index still stores `article` as `Int32?`. `covers()` and
+`title_for()` in `index.py` short-circuit to "not covered" / `None`
+when `citation.article` is non-numeric (e.g. `"92a"`), so the
+column-type mismatch never errors at runtime. Surfacing alphanumeric
+articles *in* the index — so they resolve cleanly rather than as
+`unknown_article` — is a separate task (widen the column to `Utf8`
+and rebuild).
 
 ## Dev workflow
 

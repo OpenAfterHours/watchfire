@@ -109,11 +109,16 @@ def _parse_article_body(
     if not m:
         raise CitationParseError(f"expected 'Art.' or 'Article' after '{instrument}' in {raw!r}")
     rest = body[m.end() :].lstrip()
-    num_match = re.match(r"(\d+)", rest)
+    num_match = re.match(r"(\d+[a-z]*)", rest, re.IGNORECASE)
     if not num_match:
         raise CitationParseError(f"expected article number after 'Art.' in {raw!r}")
-    article = int(num_match.group(1))
-    if article == 0:
+    article = num_match.group(1)
+    # The digit prefix carries the article number; reject zero in either
+    # plain ("0") or suffixed ("0a") form. Trailing letters denote
+    # inserted articles (e.g. CRR Art. 92a).
+    digit_match = re.match(r"\d+", article)
+    assert digit_match is not None  # guaranteed by the outer regex
+    if int(digit_match.group(0)) == 0:
         raise CitationParseError(f"article number must be positive in {raw!r}")
 
     tail = rest[num_match.end() :].strip()
@@ -130,7 +135,10 @@ def _parse_article_body(
     )
 
 
-def _parse_paren_tail(tail: str, raw: str) -> tuple[int | None, str | None, str | None]:
+_PARAGRAPH_TOKEN_RE = re.compile(r"\d+[a-z]*", re.IGNORECASE)
+
+
+def _parse_paren_tail(tail: str, raw: str) -> tuple[str | None, str | None, str | None]:
     """Parse the ``(1)(a)(ii)`` portion that follows an article number.
 
     Returns a (paragraph, point, subpoint) triple. Missing positions are
@@ -164,15 +172,15 @@ def _parse_paren_tail(tail: str, raw: str) -> tuple[int | None, str | None, str 
             f"expected at most (paragraph)(point)(subpoint)"
         )
 
-    paragraph: int | None = None
+    paragraph: str | None = None
     point: str | None = None
     subpoint: str | None = None
 
     if tokens:
         first = tokens[0]
-        if not first.isdigit():
+        if not _PARAGRAPH_TOKEN_RE.fullmatch(first):
             raise CitationParseError(f"paragraph must be an integer in {raw!r}, got '({first})'")
-        paragraph = int(first)
+        paragraph = first
     if len(tokens) >= 2:
         point = tokens[1]
     if len(tokens) == 3:
@@ -219,9 +227,9 @@ def _parse_pra_rulebook(text: str) -> Citation:
     # Split on the final section path: trailing token that looks like
     # "N", "N.N", "N.N.N" etc.
     parts = [p.strip() for p in body.split(",") if p.strip()]
-    section: tuple[int, ...] | None = None
+    section: tuple[str, ...] | None = None
     if parts and _SECTION_RE.match(parts[-1]):
-        section = tuple(int(n) for n in parts[-1].split("."))
+        section = tuple(parts[-1].split("."))
         parts = parts[:-1]
 
     if not parts:
@@ -244,7 +252,7 @@ def _parse_pra_rulebook(text: str) -> Citation:
 # ---------------------------------------------------------------------------
 
 _PARAGRAPH_TAIL = re.compile(
-    r"^(?:paragraph|para|paragraphs|¶)\s+(\d+(?:\.\d+)*)\s*$",
+    r"^(?:paragraph|para|paragraphs|¶)\s+(\d+[A-Za-z]*(?:\.\d+[A-Za-z]*)*)\s*$",
     re.IGNORECASE,
 )
 
@@ -270,7 +278,7 @@ def _parse_pra_publication(text: str, kind: str, head: str) -> Citation:
             f"unrecognised tail '{tail}' in {text!r}; expected 'paragraph N' or 'paragraph N.N'"
         )
 
-    section = tuple(int(n) for n in m.group(1).split("."))
+    section = tuple(m.group(1).split("."))
     return Citation(
         instrument=kind,  # ty: ignore[invalid-argument-type]
         instrument_id=instrument_id,

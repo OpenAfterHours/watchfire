@@ -145,15 +145,21 @@ that comes out the other side is a frozen `Citation` dataclass; see
 | `CRR Art. 153(1)(a)`               | Point                                                    |
 | `CRR Art. 153(1)(a)(ii)`           | Sub-point                                                |
 | `CRR Art. 4(1)(75)`                | Numeric point (CRR definitions)                          |
+| `CRR Art. 92a`                     | Inserted article with letter suffix                      |
+| `CRR Art. 153(1a)`                 | Inserted paragraph with letter suffix                    |
 | `PRA Rulebook, Credit Risk, 3.2`   | Rulebook section                                         |
 | `PS9/24`                           | PRA Policy Statement, whole document                     |
 | `SS1/23, paragraph 2.5`            | Supervisory Statement with paragraph reference           |
+| `PS1/26, paragraph 123B`           | Alphanumeric paragraph identifier                        |
 | `Delegated Regulation 2018/171 Art. 3` | UK on-shored EU Delegated Regulation                 |
 
 The keyword for an article accepts `Art`, `Art.`, `Article`, or `article`
-in any case. Whitespace is normalised. Anything that doesn't parse is a
-`CitationParseError`, which `watchfire check` reports with the offending
-input — these are code-review events, not silent skips.
+in any case. Whitespace is normalised. Letter suffixes are accepted on
+article numbers, on CRR paragraph numbers, and on dotted segments of
+PS/SS paragraph identifiers; each segment must still start with digits.
+PRA Rulebook section paths are digits-only. Anything that doesn't parse
+is a `CitationParseError`, which `watchfire check` reports with the
+offending input — these are code-review events, not silent skips.
 
 ## Configuration reference
 

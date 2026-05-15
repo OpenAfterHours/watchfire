@@ -107,7 +107,7 @@ class TestRunMatrix:
         assert len(report.entries) == 7
         assert report.total_citations == 7
 
-        art_153 = next(e for e in report.entries if e.key.article == 153)
+        art_153 = next(e for e in report.entries if e.key.article == "153")
         assert len(art_153.sites) == 1
         # The rollup key drops paragraph/point; the *site* retains them.
         assert art_153.key.paragraph is None
@@ -128,7 +128,7 @@ class TestRunMatrix:
         # Both sub-points roll up into a single Art. 113 entry.
         assert len(report.entries) == 1
         entry = report.entries[0]
-        assert entry.key.article == 113
+        assert entry.key.article == "113"
         assert len(entry.sites) == 2
 
     def test_instrument_ordering_crr_before_ss(self, clean_project):
@@ -169,16 +169,16 @@ class TestRunMatrix:
         # Build a config and project without going through the fixtures.
         from watchfire.index import title_for
 
-        assert title_for(idx, Citation(instrument="CRR", article=113)) == (
+        assert title_for(idx, Citation(instrument="CRR", article="113")) == (
             "Standardised approach risk weights"
         )
-        assert title_for(idx, Citation(instrument="CRR", article=999)) is None
+        assert title_for(idx, Citation(instrument="CRR", article="999")) is None
 
     def test_filter_by_instrument_and_article(self, clean_project):
         cfg = Config(source_paths=("src",), project_root=clean_project)
-        report = run_matrix(cfg, instrument_filter="CRR", article_filter=153)
+        report = run_matrix(cfg, instrument_filter="CRR", article_filter="153")
         assert len(report.entries) == 1
-        assert report.entries[0].key.article == 153
+        assert report.entries[0].key.article == "153"
         # The unfiltered totals still reflect every discovered citation;
         # only the rendered entries list is narrowed by filters.
         assert report.total_citations == 7
@@ -194,10 +194,10 @@ def _sample_report() -> MatrixReport:
         file=Path("/proj/src/myproj/sa.py"),
         line=6,
         function="calculate_sa_rwa",
-        citation=Citation(instrument="CRR", article=113, raw="CRR Art. 113"),
+        citation=Citation(instrument="CRR", article="113", raw="CRR Art. 113"),
     )
     entry = MatrixEntry(
-        key=Citation(instrument="CRR", article=113),
+        key=Citation(instrument="CRR", article="113"),
         title="Standardised approach risk weights",
         sites=(site,),
     )
@@ -221,14 +221,14 @@ class TestRenderers:
         report = MatrixReport(
             entries=(
                 MatrixEntry(
-                    key=Citation(instrument="CRR", article=999),
+                    key=Citation(instrument="CRR", article="999"),
                     title=None,
                     sites=(
                         MatrixCitationSite(
                             file=Path("/proj/src/x.py"),
                             line=1,
                             function="f",
-                            citation=Citation(instrument="CRR", article=999),
+                            citation=Citation(instrument="CRR", article="999"),
                         ),
                     ),
                 ),
@@ -275,17 +275,27 @@ class TestRenderers:
 
 class TestSortKey:
     def test_instrument_buckets_in_canonical_order(self):
-        crr = Citation(instrument="CRR", article=1)
-        ss = Citation(instrument="SS", instrument_id="SS1/23", section=(1,))
+        crr = Citation(instrument="CRR", article="1")
+        ss = Citation(instrument="SS", instrument_id="SS1/23", section=("1",))
         assert _sort_key(crr) < _sort_key(ss)
 
     def test_articles_sort_numerically_not_lexically(self):
-        # 4 < 11 < 111: lexicographic would put "11" < "4".
-        a4 = Citation(instrument="CRR", article=4)
-        a11 = Citation(instrument="CRR", article=11)
-        a111 = Citation(instrument="CRR", article=111)
+        # "4" < "11" < "111": lexicographic would put "11" < "4".
+        a4 = Citation(instrument="CRR", article="4")
+        a11 = Citation(instrument="CRR", article="11")
+        a111 = Citation(instrument="CRR", article="111")
         keys = sorted([a111, a4, a11], key=_sort_key)
-        assert [c.article for c in keys] == [4, 11, 111]
+        assert [c.article for c in keys] == ["4", "11", "111"]
+
+    def test_alphanumeric_articles_sort_naturally(self):
+        # "92" < "92a" < "92b" < "93" — letter-suffixed articles sort
+        # immediately after their bare digit form.
+        a92 = Citation(instrument="CRR", article="92")
+        a92a = Citation(instrument="CRR", article="92a")
+        a92b = Citation(instrument="CRR", article="92b")
+        a93 = Citation(instrument="CRR", article="93")
+        keys = sorted([a93, a92b, a92a, a92], key=_sort_key)
+        assert [c.article for c in keys] == ["92", "92a", "92b", "93"]
 
     @pytest.mark.parametrize(
         ("point", "bucket"),
@@ -296,8 +306,8 @@ class TestSortKey:
 
     def test_alpha_before_numeric_points(self):
         # Within the same article/paragraph, "a" should sort before "75".
-        alpha = Citation(instrument="CRR", article=4, paragraph=1, point="a")
-        numeric = Citation(instrument="CRR", article=4, paragraph=1, point="75")
+        alpha = Citation(instrument="CRR", article="4", paragraph="1", point="a")
+        numeric = Citation(instrument="CRR", article="4", paragraph="1", point="75")
         assert _sort_key(alpha) < _sort_key(numeric)
 
 

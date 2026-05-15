@@ -134,10 +134,10 @@ def matrix(
         ),
     ] = None,
     article: Annotated[
-        int | None,
+        str | None,
         typer.Option(
             "--article",
-            help="Filter to entries with this article number.",
+            help="Filter to entries with this article number (e.g. 153 or 92a).",
         ),
     ] = None,
 ) -> None:

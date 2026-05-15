@@ -22,42 +22,42 @@ class TestCRRArticle:
     def test_whole_article(self):
         c = parse_citation("CRR Art. 153")
         assert c.instrument == "CRR"
-        assert c.article == 153
+        assert c.article == "153"
         assert c.paragraph is None
         assert c.point is None
         assert c.subpoint is None
         assert c.instrument_id is None
 
     def test_alternate_keyword_article(self):
-        assert parse_citation("CRR Article 153").article == 153
+        assert parse_citation("CRR Article 153").article == "153"
 
     def test_alternate_keyword_art_no_period(self):
-        assert parse_citation("CRR Art 153").article == 153
+        assert parse_citation("CRR Art 153").article == "153"
 
     def test_lowercase_keyword(self):
-        assert parse_citation("CRR art. 153").article == 153
+        assert parse_citation("CRR art. 153").article == "153"
 
     def test_mixed_case_keyword(self):
-        assert parse_citation("CRR ARTICLE 153").article == 153
+        assert parse_citation("CRR ARTICLE 153").article == "153"
 
     def test_paragraph(self):
         c = parse_citation("CRR Art. 153(1)")
-        assert c.article == 153
-        assert c.paragraph == 1
+        assert c.article == "153"
+        assert c.paragraph == "1"
         assert c.point is None
         assert c.subpoint is None
 
     def test_point(self):
         c = parse_citation("CRR Art. 153(1)(a)")
-        assert c.article == 153
-        assert c.paragraph == 1
+        assert c.article == "153"
+        assert c.paragraph == "1"
         assert c.point == "a"
         assert c.subpoint is None
 
     def test_subpoint(self):
         c = parse_citation("CRR Art. 153(1)(a)(ii)")
-        assert c.article == 153
-        assert c.paragraph == 1
+        assert c.article == "153"
+        assert c.paragraph == "1"
         assert c.point == "a"
         assert c.subpoint == "ii"
 
@@ -65,28 +65,49 @@ class TestCRRArticle:
         # CRR Art. 4(1)(75) — definitions are numbered, so the point is
         # carried as a string even though the value is "75".
         c = parse_citation("CRR Art. 4(1)(75)")
-        assert c.article == 4
-        assert c.paragraph == 1
+        assert c.article == "4"
+        assert c.paragraph == "1"
         assert c.point == "75"
 
     def test_no_space_between_keyword_and_number(self):
-        assert parse_citation("CRR Art.153").article == 153
+        assert parse_citation("CRR Art.153").article == "153"
 
     def test_no_space_between_number_and_parens(self):
         c = parse_citation("CRR Art. 153(1)(a)")
-        assert c.paragraph == 1 and c.point == "a"
+        assert c.paragraph == "1" and c.point == "a"
 
     def test_space_between_parens(self):
         c = parse_citation("CRR Art. 153(1) (a) (ii)")
-        assert c.paragraph == 1 and c.point == "a" and c.subpoint == "ii"
+        assert c.paragraph == "1" and c.point == "a" and c.subpoint == "ii"
 
     def test_leading_and_trailing_whitespace(self):
-        assert parse_citation("  CRR Art. 153  ").article == 153
+        assert parse_citation("  CRR Art. 153  ").article == "153"
 
     def test_uppercase_subpoint_roman_numeral(self):
         # Some sources cite "(II)" in upper case; preserve as written.
         c = parse_citation("CRR Art. 153(1)(a)(II)")
         assert c.subpoint == "II"
+
+    def test_alphanumeric_article(self):
+        # Inserted articles get a letter suffix (CRR Art. 92a, 123b...).
+        c = parse_citation("CRR Art. 92a")
+        assert c.article == "92a"
+        assert c.paragraph is None
+
+    def test_alphanumeric_article_with_parens(self):
+        c = parse_citation("CRR Art. 92a(1)(b)")
+        assert c.article == "92a"
+        assert c.paragraph == "1"
+        assert c.point == "b"
+
+    def test_alphanumeric_article_uppercase_suffix(self):
+        # Suffix is preserved as written.
+        assert parse_citation("CRR Art. 92A").article == "92A"
+
+    def test_alphanumeric_paragraph(self):
+        c = parse_citation("CRR Art. 153(1a)")
+        assert c.article == "153"
+        assert c.paragraph == "1a"
 
 
 # ---------------------------------------------------------------------------
@@ -106,6 +127,10 @@ class TestCRRErrors:
     def test_crr_article_zero(self):
         with pytest.raises(CitationParseError, match="positive"):
             parse_citation("CRR Art. 0")
+
+    def test_crr_article_zero_with_suffix(self):
+        with pytest.raises(CitationParseError, match="positive"):
+            parse_citation("CRR Art. 0a")
 
     def test_unmatched_open_paren(self):
         with pytest.raises(CitationParseError):
@@ -142,12 +167,12 @@ class TestPRARulebook:
         c = parse_citation("PRA Rulebook, Credit Risk, 3.2")
         assert c.instrument == "PRA_RULEBOOK"
         assert c.instrument_id == "Credit Risk"
-        assert c.section == (3, 2)
+        assert c.section == ("3", "2")
         assert c.article is None
 
     def test_deeper_section(self):
         c = parse_citation("PRA Rulebook, Credit Risk, 3.2.1")
-        assert c.section == (3, 2, 1)
+        assert c.section == ("3", "2", "1")
 
     def test_part_only(self):
         c = parse_citation("PRA Rulebook, Credit Risk")
@@ -156,17 +181,17 @@ class TestPRARulebook:
 
     def test_single_level_section(self):
         c = parse_citation("PRA Rulebook, Credit Risk, 3")
-        assert c.section == (3,)
+        assert c.section == ("3",)
 
     def test_case_insensitive_keyword(self):
         c = parse_citation("pra rulebook, Credit Risk, 3.2")
         assert c.instrument == "PRA_RULEBOOK"
-        assert c.section == (3, 2)
+        assert c.section == ("3", "2")
 
     def test_extra_whitespace(self):
         c = parse_citation("PRA Rulebook,   Credit Risk ,  3.2")
         assert c.instrument_id == "Credit Risk"
-        assert c.section == (3, 2)
+        assert c.section == ("3", "2")
 
     def test_missing_part_errors(self):
         with pytest.raises(CitationParseError, match="must name a part"):
@@ -198,28 +223,44 @@ class TestPRAPublications:
         c = parse_citation("SS1/23, paragraph 2.5")
         assert c.instrument == "SS"
         assert c.instrument_id == "SS1/23"
-        assert c.section == (2, 5)
+        assert c.section == ("2", "5")
 
     def test_ps_with_paragraph(self):
         c = parse_citation("PS9/24, paragraph 4.1")
         assert c.instrument == "PS"
-        assert c.section == (4, 1)
+        assert c.section == ("4", "1")
 
     def test_paragraph_alias_para(self):
         c = parse_citation("SS1/23, para 2.5")
-        assert c.section == (2, 5)
+        assert c.section == ("2", "5")
 
     def test_paragraph_single_level(self):
         c = parse_citation("SS1/23, paragraph 2")
-        assert c.section == (2,)
+        assert c.section == ("2",)
 
     def test_paragraph_deep(self):
         c = parse_citation("SS1/23, paragraph 2.5.1")
-        assert c.section == (2, 5, 1)
+        assert c.section == ("2", "5", "1")
 
     def test_no_space_after_comma(self):
         c = parse_citation("SS1/23,paragraph 2.5")
-        assert c.section == (2, 5)
+        assert c.section == ("2", "5")
+
+    def test_alphanumeric_paragraph_id(self):
+        # Real-world example: rwa_calculator wants "PS1/26, paragraph 123B".
+        c = parse_citation("PS1/26, paragraph 123B")
+        assert c.instrument == "PS"
+        assert c.instrument_id == "PS1/26"
+        assert c.section == ("123B",)
+
+    def test_alphanumeric_dotted_paragraph_id(self):
+        c = parse_citation("SS1/23, paragraph 2.5a")
+        assert c.section == ("2", "5a")
+
+    def test_alphabetic_only_paragraph_rejected(self):
+        # Each dotted segment must start with a digit.
+        with pytest.raises(CitationParseError, match="unrecognised tail"):
+            parse_citation("PS1/26, paragraph a123")
 
     def test_internal_whitespace_in_code(self):
         c = parse_citation("PS 9/24")
@@ -254,15 +295,15 @@ class TestDelegatedRegulation:
         c = parse_citation("Delegated Regulation 2018/171 Art. 3")
         assert c.instrument == "DELEGATED_REG"
         assert c.instrument_id == "2018/171"
-        assert c.article == 3
+        assert c.article == "3"
 
     def test_short_keyword(self):
         c = parse_citation("Delegated Reg 2018/171 Art. 3")
-        assert c.article == 3
+        assert c.article == "3"
 
     def test_with_paragraph_and_point(self):
         c = parse_citation("Delegated Regulation 2018/171 Art. 3(1)(b)")
-        assert c.article == 3 and c.paragraph == 1 and c.point == "b"
+        assert c.article == "3" and c.paragraph == "1" and c.point == "b"
 
 
 # ---------------------------------------------------------------------------
@@ -317,7 +358,7 @@ class TestCitationObject:
 
         c = parse_citation("CRR Art. 153")
         with pytest.raises(dataclasses.FrozenInstanceError):
-            c.article = 154  # ty: ignore[possibly-unbound-attribute]
+            c.article = "154"  # ty: ignore[possibly-unbound-attribute]
 
     def test_canonical_roundtrip_crr(self):
         for s in [
@@ -326,6 +367,9 @@ class TestCitationObject:
             "CRR Art. 153(1)(a)",
             "CRR Art. 153(1)(a)(ii)",
             "CRR Art. 4(1)(75)",
+            "CRR Art. 92a",
+            "CRR Art. 92a(1)(b)",
+            "CRR Art. 153(1a)",
         ]:
             c = parse_citation(s)
             assert parse_citation(c.canonical()) == c
@@ -336,6 +380,8 @@ class TestCitationObject:
             "PRA Rulebook, Credit Risk",
             "PS9/24",
             "SS1/23, paragraph 2.5",
+            "PS1/26, paragraph 123B",
+            "SS1/23, paragraph 2.5a",
         ]:
             c = parse_citation(s)
             assert parse_citation(c.canonical()) == c
@@ -360,10 +406,10 @@ class TestCitationObject:
 
 class TestDirectConstruction:
     def test_can_build_citation_without_string(self):
-        c = Citation(instrument="CRR", article=153, paragraph=1, point="a")
-        assert c.article == 153 and c.paragraph == 1 and c.point == "a"
+        c = Citation(instrument="CRR", article="153", paragraph="1", point="a")
+        assert c.article == "153" and c.paragraph == "1" and c.point == "a"
 
     def test_constructed_citation_equals_parsed(self):
-        constructed = Citation(instrument="CRR", article=153, paragraph=1, point="a")
+        constructed = Citation(instrument="CRR", article="153", paragraph="1", point="a")
         parsed = parse_citation("CRR Art. 153(1)(a)")
         assert constructed == parsed

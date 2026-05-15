@@ -16,7 +16,7 @@ class TestDecoratorBasics:
         assert f.__watchfire__ == (parse_citation("CRR Art. 153(1)(a)"),)
 
     def test_attaches_pre_built_citation(self):
-        c = Citation(instrument="CRR", article=153)
+        c = Citation(instrument="CRR", article="153")
 
         @cites(c)
         def f():
@@ -91,8 +91,8 @@ class TestMultipleDecorations:
             pass
 
         assert len(f.__watchfire__) == 2
-        assert f.__watchfire__[0].article == 153
-        assert f.__watchfire__[1].article == 154
+        assert f.__watchfire__[0].article == "153"
+        assert f.__watchfire__[1].article == "154"
 
     def test_three_stacked_decorators_preserve_order(self):
         @cites("CRR Art. 92")
@@ -101,7 +101,7 @@ class TestMultipleDecorations:
         def f():
             pass
 
-        assert tuple(c.article for c in f.__watchfire__) == (92, 153, 154)
+        assert tuple(c.article for c in f.__watchfire__) == ("92", "153", "154")
 
     def test_stacking_does_not_mutate_shared_citation(self):
         # Decorating two different functions with the same @cites
