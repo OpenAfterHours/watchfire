@@ -44,7 +44,7 @@ class TestSchema:
 
     def test_version_pinned(self, index):
         versions = index.select("version").unique().to_series().to_list()
-        assert versions == [date(2026, 5, 14)]
+        assert versions == [date(2026, 5, 15)]
 
     def test_content_hash_is_sha256(self, index):
         import hashlib

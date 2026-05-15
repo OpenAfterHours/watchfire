@@ -1,14 +1,14 @@
 {
-  "snapshot_date": "2026-05-14",
-  "total_rows": 3456,
+  "snapshot_date": "2026-05-15",
+  "total_rows": 3813,
   "rows_per_instrument": {
     "CRR": 3453,
     "PRA_RULEBOOK": 1,
-    "PS": 1,
+    "PS": 358,
     "SS": 1
   },
   "crr_articles": 505,
   "source_toc_url": "https://www.legislation.gov.uk/eur/2013/575/contents/data.xml",
-  "git_sha": "fb66b225279bb32fce868c3ae00e2f71da8455b0",
+  "git_sha": "362eee67dc8589f5ceaf12c9fb352ed50001f5ed",
   "parquet_path": "index.parquet"
 }
