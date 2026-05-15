@@ -17,7 +17,7 @@ def malformed_string():
     return None
 
 
-@cites(Citation(instrument="CRR", article=92))
+@cites(Citation(instrument="CRR", article="92"))
 def constructed_literal():
     """Citation constructor with literal kwargs — should resolve."""
     return None

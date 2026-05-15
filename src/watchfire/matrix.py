@@ -13,6 +13,7 @@ The engine returns a :class:`MatrixReport`; all I/O lives in
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -97,7 +98,7 @@ def run_matrix(
     source_paths: list[Path] | None = None,
     specificity: Specificity = "article",
     instrument_filter: str | None = None,
-    article_filter: int | None = None,
+    article_filter: str | None = None,
 ) -> MatrixReport:
     """Build a :class:`MatrixReport` for the configured project.
 
@@ -195,17 +196,34 @@ def _sort_key(c: Citation) -> tuple:
         _INSTRUMENT_ORDER.get(c.instrument, len(_INSTRUMENT_ORDER)),
         c.instrument_id or "",
         c.article is not None,
-        c.article or 0,
+        _alphanum_sort(c.article),
         c.section is not None,
-        c.section or (),
+        tuple(_alphanum_sort(seg) for seg in (c.section or ())),
         c.paragraph is not None,
-        c.paragraph or 0,
+        _alphanum_sort(c.paragraph),
         _point_sort(c.point),
         c.subpoint is not None,
         c.subpoint or "",
         c.subparagraph is not None,
         c.subparagraph or 0,
     )
+
+
+def _alphanum_sort(s: str | None) -> tuple[int, str]:
+    """Natural-order key for digit-or-digit-plus-suffix strings.
+
+    Returns ``(numeric_prefix, suffix)`` so that ``"92" < "92a" < "92b"
+    < "93"``. Falls back to ``(0, lowercase)`` for inputs without a
+    digit prefix (none should occur in practice — the parser enforces
+    digit-leading shapes for article/paragraph/section segments).
+    """
+
+    if s is None:
+        return (0, "")
+    m = re.match(r"(\d+)([A-Za-z]*)", s)
+    if m is None:
+        return (0, s.lower())
+    return (int(m.group(1)), m.group(2).lower())
 
 
 def _point_sort(p: str | None) -> tuple[int, str, int]:

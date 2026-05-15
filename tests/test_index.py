@@ -106,7 +106,12 @@ class TestCovers:
         assert covers(index, parse_citation("CRR Art. 153(1)(a)"))
 
     def test_does_not_cover_unknown_article(self, index):
-        assert not covers(index, Citation(instrument="CRR", article=999))
+        assert not covers(index, Citation(instrument="CRR", article="999"))
+
+    def test_does_not_cover_alphanumeric_article(self, index):
+        # Alphanumeric articles aren't in the bundled index (column is
+        # Int32). They must surface as not-covered rather than erroring.
+        assert not covers(index, parse_citation("CRR Art. 92a"))
 
     def test_does_not_cover_unknown_instrument(self, index):
         assert not covers(index, Citation(instrument="SS", instrument_id="SS99/99"))

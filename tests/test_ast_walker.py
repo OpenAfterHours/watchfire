@@ -56,12 +56,12 @@ class TestIRBFile:
         findings = find_citations([FIXTURE_ROOT / "irb.py"])
         by_name = {f.function: f.citation for f in findings if isinstance(f, CitationFinding)}
         assert by_name["corporate_rw"] == Citation(
-            instrument="CRR", article=153, paragraph=1, point="a"
+            instrument="CRR", article="153", paragraph="1", point="a"
         )
-        assert by_name["retail_rw"] == Citation(instrument="CRR", article=154, paragraph=1)
+        assert by_name["retail_rw"] == Citation(instrument="CRR", article="154", paragraph="1")
         assert by_name["model_validation"].instrument == "SS"
         assert by_name["model_validation"].instrument_id == "SS1/23"
-        assert by_name["model_validation"].section == (2, 5)
+        assert by_name["model_validation"].section == ("2", "5")
         assert by_name["is_corporate"].point == "75"
 
 
@@ -83,7 +83,7 @@ class TestDynamicAndMalformed:
         findings = find_citations([FIXTURE_ROOT / "dynamic.py"])
         bucket = _by_type(findings)
         successes = {f.function: f.citation for f in bucket[CitationFinding]}
-        assert successes["constructed_literal"] == Citation(instrument="CRR", article=92)
+        assert successes["constructed_literal"] == Citation(instrument="CRR", article="92")
 
     def test_undecorated_function_not_reported(self):
         findings = find_citations([FIXTURE_ROOT / "dynamic.py"])
@@ -106,10 +106,10 @@ class TestStackedDecorators:
         # decorator has the lower line number and appears first.
         assert successes[0].line < successes[1].line
         assert successes[0].citation.instrument == "CRR"
-        assert successes[0].citation.article == 163
+        assert successes[0].citation.article == "163"
         assert successes[1].citation.instrument == "PS"
         assert successes[1].citation.instrument_id == "PS1/26"
-        assert successes[1].citation.section == (163,)
+        assert successes[1].citation.section == ("163",)
 
 
 class TestDirectoryWalk:
@@ -152,4 +152,4 @@ class TestStaticOnly:
         findings = find_citations([tmp_path])
         successes = [f for f in findings if isinstance(f, CitationFinding)]
         assert len(successes) == 1
-        assert successes[0].citation.article == 92
+        assert successes[0].citation.article == "92"
