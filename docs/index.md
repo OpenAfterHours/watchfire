@@ -155,7 +155,7 @@ hide:
     <div class="section-head">
       <div class="section-eyebrow">How it works</div>
       <h2>Three steps. No runtime wrapping.</h2>
-      <p class="section-sub">The <code>@cites</code> decorator attaches a parsed <code>Citation</code> to the function as <code>__watchfire__</code> and returns the function unchanged. The AST walker reads your source without importing it.</p>
+      <p class="section-sub">The <code>@cites</code> decorator attaches the parsed citations to the function as a <code>tuple[Citation, ...]</code> on <code>__watchfire__</code> (stack decorators when a rule lives in more than one instrument) and returns the function unchanged. The AST walker reads your source without importing it.</p>
     </div>
 
     <div class="steps">

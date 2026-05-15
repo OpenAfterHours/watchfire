@@ -13,8 +13,7 @@ class TestDecoratorBasics:
         def f():
             return 1
 
-        assert isinstance(f.__watchfire__, Citation)
-        assert f.__watchfire__ == parse_citation("CRR Art. 153(1)(a)")
+        assert f.__watchfire__ == (parse_citation("CRR Art. 153(1)(a)"),)
 
     def test_attaches_pre_built_citation(self):
         c = Citation(instrument="CRR", article=153)
@@ -23,7 +22,16 @@ class TestDecoratorBasics:
         def f():
             return 1
 
-        assert f.__watchfire__ is c
+        assert f.__watchfire__ == (c,)
+        assert f.__watchfire__[0] is c
+
+    def test_single_decorator_yields_one_element_tuple(self):
+        @cites("CRR Art. 92")
+        def f():
+            return 1
+
+        assert isinstance(f.__watchfire__, tuple)
+        assert len(f.__watchfire__) == 1
 
     def test_function_returns_unchanged(self):
         @cites("CRR Art. 153")
@@ -74,13 +82,39 @@ class TestDecoratorErrors:
 
 
 class TestMultipleDecorations:
-    def test_multiple_citations_last_wins(self):
-        # Stacking @cites is supported but only the outermost survives
-        # on __watchfire__ — see ast_walker for what scanning reports.
+    def test_stacked_decorators_preserve_both_in_source_order(self):
+        # The outermost decorator is the primary citation and appears
+        # first in __watchfire__; inner decorators follow in source order.
         @cites("CRR Art. 153")
         @cites("CRR Art. 154")
         def f():
             pass
 
-        # Outermost decorator applied last, so it overwrites.
-        assert f.__watchfire__.article == 153
+        assert len(f.__watchfire__) == 2
+        assert f.__watchfire__[0].article == 153
+        assert f.__watchfire__[1].article == 154
+
+    def test_three_stacked_decorators_preserve_order(self):
+        @cites("CRR Art. 92")
+        @cites("CRR Art. 153")
+        @cites("CRR Art. 154")
+        def f():
+            pass
+
+        assert tuple(c.article for c in f.__watchfire__) == (92, 153, 154)
+
+    def test_stacking_does_not_mutate_shared_citation(self):
+        # Decorating two different functions with the same @cites
+        # instance must not entangle their tuples.
+        deco = cites("CRR Art. 92")
+
+        @deco
+        def f():
+            pass
+
+        @deco
+        def g():
+            pass
+
+        assert f.__watchfire__ == (parse_citation("CRR Art. 92"),)
+        assert g.__watchfire__ == (parse_citation("CRR Art. 92"),)

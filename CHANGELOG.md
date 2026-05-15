@@ -16,6 +16,18 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `watchfire.index.title_for(index, citation)`: looks up the
   human-readable article title in the bundled index. Reused by
   `watchfire matrix` to label each entry.
+- Stacked `@cites` decorators are supported, for rules that live in
+  more than one instrument (e.g. a CRR article and the corresponding
+  PRA Policy Statement). The outermost decorator is the primary
+  citation; `watchfire check` reports one finding per decorator.
+
+### Changed
+
+- **Breaking:** `func.__watchfire__` is now always a
+  `tuple[Citation, ...]` (length 1+, outermost decorator first), where
+  it was previously a bare `Citation`. Code that read the attribute
+  directly must iterate or index it; the AST walker and `watchfire
+  check` are unaffected.
 
 ## [0.1.0] — 2026-05-12
 

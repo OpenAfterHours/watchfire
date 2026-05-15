@@ -77,9 +77,21 @@ src/myproj/sa.py:31: sovereign_rw: unknown_article: citation 'CRR Art. 999' poin
 watchfire: 1 failing finding(s), 0 unresolved, out of 12 resolved citation(s).
 ```
 
-`@cites` is a no-op at runtime — it attaches the parsed citation to the
-function as `__watchfire__` and returns the function unchanged. No
-wrapping, no overhead, nothing to debug.
+`@cites` is a no-op at runtime — it attaches the parsed citations to
+the function as a `tuple[Citation, ...]` on `__watchfire__` and returns
+the function unchanged. No wrapping, no overhead, nothing to debug.
+
+Multiple `@cites` decorators stack when the same rule lives in more
+than one instrument (for example a CRR article and its corresponding
+PRA Policy Statement). The outermost decorator is the primary citation
+and appears first in `__watchfire__`; `watchfire check` reports one
+finding per decorator.
+
+```python
+@cites("CRR Art. 163")            # outer / primary
+@cites("PS1/26, paragraph 163")  # inner / secondary
+def apply_pd_floor(...): ...
+```
 
 ## Traceability matrix
 
