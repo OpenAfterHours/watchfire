@@ -776,7 +776,6 @@ wheels = [
 
 [[package]]
 name = "watchfire"
-version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "polars" },
@@ -812,7 +811,7 @@ requires-dist = [
     { name = "typer", specifier = ">=0.12.0" },
     { name = "zensical", marker = "extra == 'dev'", specifier = ">=0.0.41" },
 ]
-provides-extras = ["dev", "build"]
+provides-extras = ["build", "dev"]
 
 [[package]]
 name = "zensical"

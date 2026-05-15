@@ -1,26 +1,20 @@
-"""Bump the ``watchfire`` release version.
+"""Promote the ``## [Unreleased]`` section in ``CHANGELOG.md`` for a release.
 
 Runs the four CI gates (``ruff check``, ``ruff format --check``,
-``ty check``, ``pytest``) and, if all pass, rewrites the two version
-strings that must stay in sync:
-
-- ``pyproject.toml``        (``[project] version``)
-- ``src/watchfire/__init__.py``  (``__version__``)
-
-It also promotes the ``## [Unreleased]`` section in ``CHANGELOG.md`` to
-``## [<new>] - <today>`` (Keep a Changelog flow) and inserts a fresh
-empty ``## [Unreleased]`` header above it. The script refuses to run
-if the existing ``## [Unreleased]`` section has no entries; pass
+``ty check``, ``pytest``) and, if all pass, rewrites
+``## [Unreleased]`` to ``## [<new>] - <today>`` (Keep a Changelog flow)
+and inserts a fresh empty ``## [Unreleased]`` header above it. Refuses to
+run if the existing ``## [Unreleased]`` section has no entries; pass
 ``--allow-empty-changelog`` to override.
 
-This script does not commit, tag, or push - inspect ``git diff`` after
-it runs and create the release commit yourself.
+The package version itself lives in git tags (``hatch-vcs``) — there are no
+version strings to rewrite. This script does not commit, tag, or push;
+inspect ``git diff`` after it runs and create the release commit yourself.
 
 Run from the repo root:
 
     uv run python scripts/bump_release.py 0.2.0
-    uv run python scripts/bump_release.py --part minor
-    uv run python scripts/bump_release.py --part patch --skip-tests   # gates off for a dry run
+    uv run python scripts/bump_release.py 0.2.0 --skip-tests   # gates off for a dry run
 
 A ``--dry-run`` flag prints the planned change without touching files.
 """
@@ -36,8 +30,6 @@ from datetime import date
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PYPROJECT = REPO_ROOT / "pyproject.toml"
-INIT_PY = REPO_ROOT / "src" / "watchfire" / "__init__.py"
 CHANGELOG = REPO_ROOT / "CHANGELOG.md"
 
 # The existing CHANGELOG uses an em dash between version and date. Mirror it.
@@ -58,7 +50,6 @@ GATES: list[tuple[str, list[str]]] = [
 
 @dataclass(frozen=True)
 class Bump:
-    old: str
     new: str
 
 
@@ -67,17 +58,10 @@ class BumpError(Exception):
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Bump the watchfire release version.")
-    target = parser.add_mutually_exclusive_group(required=True)
-    target.add_argument(
+    parser = argparse.ArgumentParser(description="Promote CHANGELOG for a watchfire release.")
+    parser.add_argument(
         "version",
-        nargs="?",
-        help="Explicit target version, e.g. 0.2.0 or 0.2.0rc1.",
-    )
-    target.add_argument(
-        "--part",
-        choices=["major", "minor", "patch"],
-        help="Increment the named part of the current version.",
+        help="Target version, e.g. 0.2.0 or 0.2.0rc1.",
     )
     parser.add_argument(
         "--skip-tests",
@@ -99,39 +83,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Print the planned bump and exit without writing files.",
     )
-    return parser.parse_args(argv)
-
-
-def read_current_version() -> str:
-    text = PYPROJECT.read_text(encoding="utf-8")
-    match = re.search(r'(?m)^version\s*=\s*"([^"]+)"\s*$', text)
-    if match is None:
-        raise BumpError(f"could not find version in {PYPROJECT}")
-    return match.group(1)
-
-
-def compute_target(current: str, args: argparse.Namespace) -> str:
-    if args.version is not None:
-        if not VERSION_RE.match(args.version):
-            raise BumpError(
-                f"target version {args.version!r} is not of the form MAJOR.MINOR.PATCH[suffix]"
-            )
-        return args.version
-
-    match = VERSION_RE.match(current)
-    if match is None:
-        raise BumpError(
-            f"current version {current!r} does not match MAJOR.MINOR.PATCH — "
-            "pass an explicit target instead of --part"
+    args = parser.parse_args(argv)
+    if not VERSION_RE.match(args.version):
+        parser.error(
+            f"target version {args.version!r} is not of the form MAJOR.MINOR.PATCH[suffix]"
         )
-    major, minor, patch = (int(match.group(i)) for i in (1, 2, 3))
-    if args.part == "major":
-        major, minor, patch = major + 1, 0, 0
-    elif args.part == "minor":
-        minor, patch = minor + 1, 0
-    else:
-        patch += 1
-    return f"{major}.{minor}.{patch}"
+    return args
 
 
 def check_clean_tree() -> None:
@@ -157,22 +114,6 @@ def run_gates() -> None:
         result = subprocess.run(cmd, cwd=REPO_ROOT, check=False)
         if result.returncode != 0:
             raise BumpError(f"{label} failed with exit code {result.returncode}")
-
-
-def apply_bump(bump: Bump, *, today: date) -> None:
-    _rewrite(
-        PYPROJECT,
-        old_pattern=re.compile(rf'(?m)^version\s*=\s*"{re.escape(bump.old)}"\s*$'),
-        new_line=f'version = "{bump.new}"',
-        description="pyproject.toml [project] version",
-    )
-    _rewrite(
-        INIT_PY,
-        old_pattern=re.compile(rf'(?m)^__version__\s*=\s*"{re.escape(bump.old)}"\s*$'),
-        new_line=f'__version__ = "{bump.new}"',
-        description="src/watchfire/__init__.py __version__",
-    )
-    _promote_changelog(bump, today=today)
 
 
 def check_changelog_has_entries() -> None:
@@ -218,17 +159,6 @@ def _promote_changelog(bump: Bump, *, today: date) -> None:
     print(f"  promoted ## [Unreleased] -> ## [{bump.new}] in CHANGELOG.md")
 
 
-def _rewrite(path: Path, *, old_pattern: re.Pattern[str], new_line: str, description: str) -> None:
-    text = path.read_text(encoding="utf-8")
-    new_text, count = old_pattern.subn(new_line, text, count=1)
-    if count != 1:
-        raise BumpError(
-            f"could not update {description}: expected exactly one match in {path.name}, found {count}"
-        )
-    path.write_text(new_text, encoding="utf-8")
-    print(f"  rewrote {description}")
-
-
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
 
@@ -236,13 +166,8 @@ def main(argv: list[str] | None = None) -> int:
         if not args.allow_dirty and not args.dry_run:
             check_clean_tree()
 
-        current = read_current_version()
-        target = compute_target(current, args)
-        if target == current:
-            raise BumpError(f"target version {target} matches current — nothing to do")
-
-        bump = Bump(old=current, new=target)
-        print(f"bumping watchfire: {bump.old} -> {bump.new}")
+        bump = Bump(new=args.version)
+        print(f"preparing watchfire release: {bump.new}")
 
         if not args.allow_empty_changelog:
             check_changelog_has_entries()
@@ -256,11 +181,14 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print("warning: --skip-tests was set; gates were not run")
 
-        apply_bump(bump, today=date.today())
+        _promote_changelog(bump, today=date.today())
         print(
-            f"\ndone. Review with `git diff`, then commit:\n"
+            f"\ndone. Review with `git diff`, then commit, tag, and push:\n"
             f"    git commit -am 'chore: release {bump.new}'\n"
-            f"    git tag v{bump.new}"
+            f"    git tag v{bump.new}\n"
+            f"    git push origin master --tags\n"
+            f"Then create a GitHub Release from the v{bump.new} tag — "
+            f"that triggers publish.yml."
         )
         return 0
     except BumpError as exc:

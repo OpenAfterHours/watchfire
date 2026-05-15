@@ -1,6 +1,6 @@
 [project]
 name = "watchfire"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Static analysis for UK financial regulatory citations in Python code."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -68,8 +68,17 @@ build = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/watchfire/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/watchfire"]
@@ -80,6 +89,7 @@ packages = ["src/watchfire"]
 target-version = "py311"
 line-length = 100
 src = ["src", "tests"]
+extend-exclude = ["src/watchfire/_version.py"]
 
 [tool.ruff.lint]
 select = [
@@ -128,7 +138,7 @@ exclude_lines = [
 python-version = "3.11"
 
 [tool.ty.src]
-exclude = ["tests/fixtures/"]
+exclude = ["tests/fixtures/", "src/watchfire/_version.py"]
 
 # Project-level defaults consumed by `watchfire check` itself.
 # Downstream projects that depend on watchfire add their own [tool.watchfire] table.
