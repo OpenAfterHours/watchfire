@@ -91,12 +91,33 @@ class TestDynamicAndMalformed:
         assert "not_decorated" not in all_names
 
 
+class TestStackedDecorators:
+    def test_stacked_decorators_emit_one_finding_each(self):
+        findings = find_citations([FIXTURE_ROOT / "stacked.py"])
+        successes = [f for f in findings if isinstance(f, CitationFinding)]
+        # Two stacked @cites on apply_pd_floor.
+        assert len(successes) == 2
+        assert {f.function for f in successes} == {"apply_pd_floor"}
+
+    def test_stacked_decorators_in_outer_first_source_order(self):
+        findings = find_citations([FIXTURE_ROOT / "stacked.py"])
+        successes = [f for f in findings if isinstance(f, CitationFinding)]
+        # ast.decorator_list is in source order (top first), so the outer
+        # decorator has the lower line number and appears first.
+        assert successes[0].line < successes[1].line
+        assert successes[0].citation.instrument == "CRR"
+        assert successes[0].citation.article == 163
+        assert successes[1].citation.instrument == "PS"
+        assert successes[1].citation.instrument_id == "PS1/26"
+        assert successes[1].citation.section == (163,)
+
+
 class TestDirectoryWalk:
     def test_walks_directory_recursively(self):
         findings = find_citations([FIXTURE_ROOT])
         successes = [f for f in findings if isinstance(f, CitationFinding)]
-        # 3 from sa.py + 4 from irb.py + 1 from dynamic.py = 8
-        assert len(successes) == 8
+        # 3 from sa.py + 4 from irb.py + 1 from dynamic.py + 2 from stacked.py = 10
+        assert len(successes) == 10
 
     def test_findings_are_deterministic_order(self):
         a = find_citations([FIXTURE_ROOT])

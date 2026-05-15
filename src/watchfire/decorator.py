@@ -1,9 +1,15 @@
 """The ``@cites`` decorator.
 
-A no-op at runtime: attaches a :class:`Citation` to the wrapped function
-as ``__watchfire__`` and returns the original function unchanged. Static
-analysis (the AST walker, ``watchfire check``) is what actually does
-something with the citation.
+A no-op at runtime: attaches the parsed :class:`Citation` to the wrapped
+function as a ``tuple[Citation, ...]`` on ``__watchfire__`` and returns
+the original function unchanged. Static analysis (the AST walker,
+``watchfire check``) is what actually does something with the citation.
+
+Multiple ``@cites`` decorators stack: the same rule often lives in two
+instruments (e.g. a CRR article and the corresponding PRA Policy
+Statement), and authors can record both. The outermost decorator is the
+primary citation and appears first in ``__watchfire__``; subsequent
+decorators (inner) follow in source order.
 
 The string form is parsed eagerly so a malformed citation fails at
 import time, not at audit time.
@@ -31,10 +37,16 @@ def cites(citation: Citation) -> Callable[[F], F]: ...
 def cites(citation: str | Citation) -> Callable[[F], F]:
     """Attach a regulatory citation to the decorated function.
 
-    The citation is stored on the function as ``__watchfire__`` and the
-    function is otherwise returned unchanged. There is no runtime
-    overhead and no wrapping; introspection tools that look at
-    ``func.__watchfire__`` will find a :class:`Citation`.
+    The citation is stored on the function as ``__watchfire__``, which
+    is always a ``tuple[Citation, ...]`` of length one or more. The
+    function is otherwise returned unchanged: there is no runtime
+    overhead and no wrapping.
+
+    Stacking ``@cites`` decorators is supported and is the canonical way
+    to record that a function implements a rule that lives in more than
+    one instrument. The outermost decorator is the primary citation and
+    appears at ``__watchfire__[0]``; inner decorators follow in source
+    order.
 
     Args:
         citation: Either a canonical citation string (parsed eagerly)
@@ -55,7 +67,8 @@ def cites(citation: str | Citation) -> Callable[[F], F]:
         raise TypeError(f"@cites requires a string or Citation, got {type(citation).__name__}")
 
     def decorate(func: F) -> F:
-        func.__watchfire__ = parsed
+        existing: tuple[Citation, ...] = getattr(func, "__watchfire__", ())
+        func.__watchfire__ = (parsed, *existing)
         return func
 
     return decorate

@@ -58,10 +58,13 @@ The public API is exactly the four names re-exported from
 
 ## Key invariants — don't break these
 
-- **`@cites` is a no-op at runtime.** It stores the parsed `Citation`
-  on `func.__watchfire__` and returns the function unchanged. No wrapping,
-  no `functools.wraps`, no introspection hooks. If you find yourself
-  about to wrap, stop.
+- **`@cites` is a no-op at runtime.** It attaches the parsed citations
+  to `func.__watchfire__` as a `tuple[Citation, ...]` (always a tuple,
+  always length 1+) and returns the function unchanged. No wrapping, no
+  `functools.wraps`, no introspection hooks. If you find yourself about
+  to wrap, stop. Stacked `@cites` decorators are supported — the
+  outermost decorator is the primary citation at `__watchfire__[0]`,
+  inner decorators follow in source order.
 - **The parser raises on malformed input.** A citation that doesn't
   parse is a code-review event, never a silent skip. `CitationParseError`
   messages must quote the offending input.
