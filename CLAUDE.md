@@ -15,20 +15,24 @@ rulebook. The first real consumer is `OpenAfterHours/rwa_calculator`.
 Sibling repo `rwa_calculator` is the style and tooling reference — when
 in doubt, mirror its conventions.
 
-## Scope guardrails (v0.1)
+## Scope guardrails (current: v0.3)
 
-In scope: citation grammar + parser, `@cites` decorator, AST walker,
-bundled CRR index, `watchfire check` CLI, `[tool.watchfire]` config.
+Shipped surface: citation grammar + parser, `@cites` decorator (stacks),
+AST walker, bundled CRR + PRA SS/PS index, `watchfire check` CLI,
+`watchfire matrix` CLI, `[tool.watchfire]` config.
 
 **Out of scope — do not implement until asked:**
 
-- `watchfire matrix` (traceability matrix) — v0.2
-- `watchfire stale` (rulebook diff vs index) — v0.2. The `version_mismatch`
-  branch in `checks/check.py` is a placeholder for this; do not extend
-  it without a v0.2 design.
-- Automated scraping of the PRA Rulebook and Delegated Regulations — v0.3+.
-  CRR scraping landed in v0.2 (see `scripts/build_index/`); SS / PS PDFs
-  use a curated seed list with an opt-in PDF parser, not a live fetch.
+- `watchfire stale` (rulebook diff vs index) — slipped past v0.3 without
+  a release; treat as the next major work but don't start it without a
+  design. The `version_mismatch` branch in `checks/check.py` is the
+  placeholder slot for it; do not extend that branch without a `stale`
+  design.
+- Automated scraping of the PRA Rulebook and Delegated Regulations.
+  CRR scraping shipped in v0.3 (see `scripts/build_index/`); SS / PS
+  PDFs use a curated seed list with an opt-in PDF parser, not a live
+  fetch. Full automated PRA Rulebook / Delegated Reg ingestion is still
+  future work.
 - Test-to-citation mapping, coverage heuristics — later
 
 The grammar and decorator surface are the things to get right first.
@@ -44,11 +48,13 @@ src/watchfire/
   decorator.py       @cites — attaches __watchfire__, no runtime wrapping
   ast_walker.py      find_citations(paths) -> list[CitationFinding | ParseFailure | UnresolvedCitation]
   index.py           load_index() -> pl.DataFrame; covers(index, citation)
+  matrix.py          run_matrix(...) + render_text/markdown/json — engine for `watchfire matrix`
   config.py          [tool.watchfire] reader, returns Config
   checks/check.py    run_check(config) — the engine behind `watchfire check`
-  cli.py             typer app; thin wrapper over run_check
+  cli.py             typer app; thin wrapper over run_check / run_matrix
   data/index.parquet bundled rulebook snapshot
-scripts/build_index.py   one-off rebuild of data/index.parquet
+scripts/build_index/     rebuild of data/index.parquet (CRR scrape + PRA PDFs)
+scripts/bump_release.py  version bump + changelog/tag helper
 tests/                   one test_*.py per module + fixtures/sample_project
 ```
 
@@ -106,13 +112,12 @@ not `int`. Digit-only values are stored as digit strings (`"153"`,
 `("123B",)` need string segments. PRA Rulebook section paths are
 digits-only but still stored as `tuple[str, ...]` for type uniformity.
 
-The bundled index still stores `article` as `Int32?`. `covers()` and
-`title_for()` in `index.py` short-circuit to "not covered" / `None`
-when `citation.article` is non-numeric (e.g. `"92a"`), so the
-column-type mismatch never errors at runtime. Surfacing alphanumeric
-articles *in* the index — so they resolve cleanly rather than as
-`unknown_article` — is a separate task (widen the column to `Utf8`
-and rebuild).
+The bundled index stores `article` as `Utf8?` (widened from `Int32?`
+in v0.3), so alphanumeric articles like `"92a"` resolve cleanly through
+`covers()` and `title_for()` instead of falling through to
+`unknown_article`. Keep `PARQUET_SCHEMA` in `scripts/build_index/schema.py`
+and the schema docstring at the top of `src/watchfire/index.py` in
+lockstep if you touch column dtypes.
 
 ## Dev workflow
 
@@ -202,9 +207,10 @@ Adding columns means updating the loader docstring, the schema dict in
 - Print statements are allowed only in CLI / `checks/` / `scripts/`
   (see `tool.ruff.lint.per-file-ignores`). Library code should not print.
 
-## "Done" for v0.1
+## The baseline bar
 
 A downstream user can `uv add watchfire`, add `[tool.watchfire]` to their
 `pyproject.toml`, decorate a function with `@cites("CRR Art. 153(1)(a)")`,
 run `watchfire check`, and get either a clean exit or a clear, actionable
-error. That's the bar. Everything else is v0.2+.
+error. This is the load-bearing happy path; release-notes and feature
+additions belong in `CHANGELOG.md`, not here.
