@@ -121,10 +121,11 @@ def _parse_article_body(
     num_match = re.match(r"(\d+[a-z]*)", rest, re.IGNORECASE)
     if not num_match:
         raise CitationParseError(f"expected article number after 'Art.' in {raw!r}")
-    article = num_match.group(1)
     # The digit prefix carries the article number; reject zero in either
     # plain ("0") or suffixed ("0a") form. Trailing letters denote
-    # inserted articles (e.g. CRR Art. 92a).
+    # inserted articles (e.g. CRR Art. 92a) — canonicalised to lowercase
+    # so '92A' and '92a' compare equal and match the index.
+    article = num_match.group(1).lower()
     digit_match = re.match(r"\d+", article)
     assert digit_match is not None  # guaranteed by the outer regex
     if int(digit_match.group(0)) == 0:

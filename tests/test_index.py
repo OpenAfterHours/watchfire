@@ -44,7 +44,7 @@ class TestSchema:
 
     def test_version_pinned(self, index):
         versions = index.select("version").unique().to_series().to_list()
-        assert versions == [date(2026, 5, 15)]
+        assert versions == [date(2026, 5, 16)]
 
     def test_content_hash_is_sha256(self, index):
         import hashlib
@@ -70,12 +70,13 @@ class TestArticleCoverage:
         assert not missing, f"index is missing CRR articles: {sorted(missing)}"
 
     def test_full_crr_coverage(self, index):
-        # Whole UK-retained CRR ships ~528 articles; allow for repealed
-        # ones with no extractable body.
+        # Whole UK-retained CRR ships ~520 base articles plus ~120
+        # CRR2-inserted letter-suffixed ones (92a, the 325 FRTB block,
+        # 501a, etc.); allow for repealed entries with no extractable body.
         article_count = (
             index.filter(pl.col("instrument") == "CRR").select("article").drop_nulls().n_unique()
         )
-        assert 480 <= article_count <= 530, f"unexpected article count: {article_count}"
+        assert 600 <= article_count <= 700, f"unexpected article count: {article_count}"
 
     def test_article_4_definitions(self, index):
         # Article 4(1) is the definitions paragraph (rwa_calculator
@@ -126,13 +127,17 @@ class TestCovers:
     def test_does_not_cover_unknown_article(self, index):
         assert not covers(index, Citation(instrument="CRR", article="999"))
 
-    def test_alphanumeric_article_not_in_crr_index(self, index):
-        # The CRR scraper walks legislation.gov.uk's article TOC, which
-        # only exposes integer article numbers — inserted articles like
-        # "92a" are not currently fetched, so they should surface as
-        # not-covered. After the schema widening to Utf8 this is now a
-        # data-completeness assertion rather than a column-type guard.
-        assert not covers(index, parse_citation("CRR Art. 92a"))
+    def test_alphanumeric_article_covered(self, index):
+        # CRR2-inserted articles (letter suffix) flow through the same
+        # scrape path as digit-only ones since the TOC walker now
+        # captures alphanumeric IDs. 92a and 501a are representative.
+        assert covers(index, parse_citation("CRR Art. 92a"))
+        assert covers(index, parse_citation("CRR Art. 501a"))
+
+    def test_alphanumeric_article_case_insensitive_match(self, index):
+        # Parser canonicalises the article suffix to lowercase, so an
+        # uppercase citation hits the same lowercase index row.
+        assert covers(index, parse_citation("CRR Art. 92A"))
 
     def test_does_not_cover_unknown_instrument(self, index):
         assert not covers(index, Citation(instrument="SS", instrument_id="SS99/99"))

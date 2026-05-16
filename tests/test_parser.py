@@ -101,8 +101,9 @@ class TestCRRArticle:
         assert c.point == "b"
 
     def test_alphanumeric_article_uppercase_suffix(self):
-        # Suffix is preserved as written.
-        assert parse_citation("CRR Art. 92A").article == "92A"
+        # Suffix is canonicalised to lowercase so '92A' and '92a' match
+        # the index (which mirrors the legislation.gov.uk URL convention).
+        assert parse_citation("CRR Art. 92A").article == "92a"
 
     def test_alphanumeric_paragraph(self):
         c = parse_citation("CRR Art. 153(1a)")

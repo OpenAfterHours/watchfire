@@ -49,8 +49,7 @@ _STRUCTURAL = {"P2", "P3", "P4", "OrderedList"}
 
 @dataclass(frozen=True)
 class _Paragraph:
-    number: int | None
-    label: str | None  # raw label for non-integer paragraphs, e.g. "1A"
+    label: str | None  # raw Pnumber value, e.g. "1", "1A", or None for unnumbered
     elem: etree._Element
 
 
@@ -66,14 +65,14 @@ class _Subpoint:
     elem: etree._Element
 
 
-def fetch_toc(cache_dir: Path, *, refresh: bool = False) -> list[int]:
+def fetch_toc(cache_dir: Path, *, refresh: bool = False) -> list[str]:
     cache_path = cache_dir / "eur-2013-575" / "contents.xml"
     with make_client() as client:
         xml = get_cached(client, TOC_URL, cache_path, refresh=refresh)
-    return sorted(_extract_article_numbers(xml))
+    return sorted(_extract_article_ids(xml), key=_article_sort_key)
 
 
-def fetch_article_xml(article: int, cache_dir: Path, *, refresh: bool = False) -> bytes:
+def fetch_article_xml(article: str, cache_dir: Path, *, refresh: bool = False) -> bytes:
     cache_path = cache_dir / "eur-2013-575" / f"article-{article}.xml"
     with make_client() as client:
         return get_cached(
@@ -88,7 +87,7 @@ def iter_crr_rows(
     cache_dir: Path | None = None,
     *,
     refresh: bool = False,
-    only_articles: Iterable[int] | None = None,
+    only_articles: Iterable[str] | None = None,
 ) -> Iterable[Row]:
     if cache_dir is None:
         repo_root = Path(__file__).resolve().parents[2]
@@ -116,7 +115,7 @@ def iter_crr_rows(
             yield from parse_clml_article(n, xml)
 
 
-def parse_clml_article(article: int, xml: bytes) -> Iterable[Row]:
+def parse_clml_article(article: str, xml: bytes) -> Iterable[Row]:
     try:
         root = etree.fromstring(xml)
     except etree.XMLSyntaxError as exc:
@@ -134,11 +133,10 @@ def parse_clml_article(article: int, xml: bytes) -> Iterable[Row]:
     if not full_text:
         return
 
-    article_str = str(article)
     yield Row(
         instrument="CRR",
         instrument_id=None,
-        article=article_str,
+        article=article,
         paragraph=None,
         point=None,
         subpoint=None,
@@ -150,12 +148,12 @@ def parse_clml_article(article: int, xml: bytes) -> Iterable[Row]:
 
     for paragraph in _iter_paragraphs(article_elem):
         para_text = _gather_text(paragraph.elem)
-        paragraph_str = str(paragraph.number) if paragraph.number is not None else None
+        paragraph_str = paragraph.label.lower() if paragraph.label else None
         if para_text:
             yield Row(
                 instrument="CRR",
                 instrument_id=None,
-                article=article_str,
+                article=article,
                 paragraph=paragraph_str,
                 point=None,
                 subpoint=None,
@@ -170,7 +168,7 @@ def parse_clml_article(article: int, xml: bytes) -> Iterable[Row]:
                 yield Row(
                     instrument="CRR",
                     instrument_id=None,
-                    article=article_str,
+                    article=article,
                     paragraph=paragraph_str,
                     point=point.label,
                     subpoint=None,
@@ -185,7 +183,7 @@ def parse_clml_article(article: int, xml: bytes) -> Iterable[Row]:
                     yield Row(
                         instrument="CRR",
                         instrument_id=None,
-                        article=article_str,
+                        article=article,
                         paragraph=paragraph_str,
                         point=point.label,
                         subpoint=sub.label,
@@ -205,24 +203,43 @@ def _local(tag: object) -> str:
     return tag.rsplit("}", 1)[-1] if "}" in tag else tag
 
 
-def _extract_article_numbers(xml: bytes) -> set[int]:
+def _extract_article_ids(xml: bytes) -> set[str]:
+    """Collect article identifiers (digits or digit+letter suffix) from a TOC.
+
+    Many CRR2-inserted articles use letter suffixes (``92a``, ``501a``,
+    the entire ``325a``-``325bp`` FRTB block). The IDs are lowercased
+    to match the URL convention used by legislation.gov.uk.
+    """
+
     try:
         root = etree.fromstring(xml)
     except etree.XMLSyntaxError:
         return set()
-    numbers: set[int] = set()
+    ids: set[str] = set()
     for elem in root.iter():
         for attr in ("DocumentURI", "IdURI", "href"):
             value = elem.get(attr)
             if value is None:
                 continue
-            match = re.search(r"/article/(\d+)(?:/|$)", value)
+            match = re.search(r"/article/(\d+[a-z]*)(?:/|$)", value)
             if match:
-                numbers.add(int(match.group(1)))
-    return numbers
+                ids.add(match.group(1).lower())
+    return ids
 
 
-def _find_article_element(root: etree._Element, article: int) -> etree._Element | None:
+def _article_sort_key(article: str) -> tuple[int, str]:
+    """Order articles numerically, with letter-suffixed forms after the base.
+
+    Example ordering: ``92`` < ``92a`` < ``92b`` < ``93``.
+    """
+
+    match = re.match(r"(\d+)([a-z]*)", article)
+    if match is None:
+        return (0, article)
+    return (int(match.group(1)), match.group(2))
+
+
+def _find_article_element(root: etree._Element, article: str) -> etree._Element | None:
     """Return ``<P1 id="article-N">`` for the requested article."""
 
     target_id = f"article-{article}"
@@ -238,7 +255,7 @@ def _find_article_element(root: etree._Element, article: int) -> etree._Element 
     return None
 
 
-def _article_title(article_elem: etree._Element, article: int) -> str:
+def _article_title(article_elem: etree._Element, article: str) -> str:
     """CRR title sits in a sibling ``<Title>``; fall back to Pnumber text."""
 
     # The <Title> for the article is a sibling under the P1group containing
@@ -312,14 +329,13 @@ def _iter_paragraphs(article_elem: etree._Element) -> Iterable[_Paragraph]:
                 p2_children.append(child)
     if p2_children:
         for p2 in p2_children:
-            raw = _pnumber(p2)
-            yield _Paragraph(number=_to_int(raw), label=raw, elem=p2)
+            yield _Paragraph(label=_pnumber(p2), elem=p2)
         return
 
     # No P2 — treat the article body as a single unnumbered paragraph.
     # We yield the article element itself so points come from any
     # OrderedList inside its P1para children.
-    yield _Paragraph(number=None, label=None, elem=article_elem)
+    yield _Paragraph(label=None, elem=article_elem)
 
 
 _LIST_TYPE_TO_FORMATTER = {
@@ -437,12 +453,3 @@ def _has_ancestor_of_type(elem: etree._Element, boundary: etree._Element, tag: s
             return True
         parent = parent.getparent()
     return False
-
-
-def _to_int(value: str | None) -> int | None:
-    if value is None:
-        return None
-    try:
-        return int(value)
-    except ValueError:
-        return None
