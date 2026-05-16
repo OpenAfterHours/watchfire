@@ -151,6 +151,7 @@ that comes out the other side is a frozen `Citation` dataclass; see
 | `PS9/24`                           | PRA Policy Statement, whole document                     |
 | `SS1/23, paragraph 2.5`            | Supervisory Statement with paragraph reference           |
 | `PS1/26, paragraph 123B`           | Alphanumeric paragraph identifier                        |
+| `PS1/26 Art. 111(1)(a)`            | PS-attached rulebook instrument with CRR-style article   |
 | `Delegated Regulation 2018/171 Art. 3` | UK on-shored EU Delegated Regulation                 |
 
 The keyword for an article accepts `Art`, `Art.`, `Article`, or `article`

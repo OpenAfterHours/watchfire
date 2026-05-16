@@ -134,10 +134,11 @@ def parse_clml_article(article: int, xml: bytes) -> Iterable[Row]:
     if not full_text:
         return
 
+    article_str = str(article)
     yield Row(
         instrument="CRR",
         instrument_id=None,
-        article=article,
+        article=article_str,
         paragraph=None,
         point=None,
         subpoint=None,
@@ -149,12 +150,13 @@ def parse_clml_article(article: int, xml: bytes) -> Iterable[Row]:
 
     for paragraph in _iter_paragraphs(article_elem):
         para_text = _gather_text(paragraph.elem)
+        paragraph_str = str(paragraph.number) if paragraph.number is not None else None
         if para_text:
             yield Row(
                 instrument="CRR",
                 instrument_id=None,
-                article=article,
-                paragraph=paragraph.number,
+                article=article_str,
+                paragraph=paragraph_str,
                 point=None,
                 subpoint=None,
                 section=None,
@@ -168,8 +170,8 @@ def parse_clml_article(article: int, xml: bytes) -> Iterable[Row]:
                 yield Row(
                     instrument="CRR",
                     instrument_id=None,
-                    article=article,
-                    paragraph=paragraph.number,
+                    article=article_str,
+                    paragraph=paragraph_str,
                     point=point.label,
                     subpoint=None,
                     section=None,
@@ -183,8 +185,8 @@ def parse_clml_article(article: int, xml: bytes) -> Iterable[Row]:
                     yield Row(
                         instrument="CRR",
                         instrument_id=None,
-                        article=article,
-                        paragraph=paragraph.number,
+                        article=article_str,
+                        paragraph=paragraph_str,
                         point=point.label,
                         subpoint=sub.label,
                         section=None,

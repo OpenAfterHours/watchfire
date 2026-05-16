@@ -103,6 +103,8 @@ class Citation:
             return ", ".join(parts)
         if self.instrument in ("PS", "SS"):
             base = self.instrument_id or self.instrument
+            if self.article is not None:
+                return _format_article(base, self)
             if self.section:
                 return f"{base}, paragraph " + ".".join(str(n) for n in self.section)
             return base
