@@ -38,6 +38,14 @@ _SECTION_RE = re.compile(r"^\d+(?:\.\d+)*$")
 # PS / SS document codes: "PS9/24", "SS1/23".
 _PS_ID_RE = re.compile(r"^(PS|SS)\s*(\d+\s*/\s*\d+)$", re.IGNORECASE)
 
+# PS / SS document code anchored at the start of a citation, capturing any
+# trailing text (a paragraph tail like ", paragraph 4.1" or an article
+# tail like " Art. 111(1)(a)").
+_PRA_PUB_HEAD = re.compile(
+    r"^(PS|SS)\s*(\d+)\s*/\s*(\d+)(.*)$",
+    re.IGNORECASE | re.DOTALL,
+)
+
 
 def parse_citation(s: str) -> Citation:
     """Parse a canonical citation string.
@@ -67,12 +75,13 @@ def parse_citation(s: str) -> Citation:
     if upper.startswith("PRA RULEBOOK"):
         return _parse_pra_rulebook(text)
 
-    # PS9/24 or SS1/23 (with optional ", paragraph X" tail).
-    head, _, _ = text.partition(",")
-    head_compact = re.sub(r"\s+", "", head)
-    m = _PS_ID_RE.match(head_compact)
+    # PS9/24 or SS1/23 (with optional ", paragraph X" or " Art. N(P)(p)" tail).
+    m = _PRA_PUB_HEAD.match(text)
     if m:
-        return _parse_pra_publication(text, m.group(1).upper(), head.strip())
+        kind = m.group(1).upper()
+        instrument_id = f"{kind}{m.group(2)}/{m.group(3)}"
+        rest = m.group(4)
+        return _parse_pra_publication(text, kind, instrument_id, rest)
 
     raise CitationParseError(
         f"unrecognised instrument in citation {s!r}; "
@@ -257,31 +266,36 @@ _PARAGRAPH_TAIL = re.compile(
 )
 
 
-def _parse_pra_publication(text: str, kind: str, head: str) -> Citation:
-    # Canonicalise the document id: "PS 9 / 24" -> "PS9/24".
-    instrument_id = re.sub(r"\s+", "", head).upper()
-    # Validate the canonical form before continuing.
-    if not _PS_ID_RE.match(instrument_id):
-        raise CitationParseError(f"expected '{kind}<n>/<yy>' in {text!r}")
-
-    _, sep, tail = text.partition(",")
-    if not sep:
+def _parse_pra_publication(text: str, kind: str, instrument_id: str, rest: str) -> Citation:
+    stripped = rest.strip()
+    if not stripped:
         return Citation(instrument=kind, instrument_id=instrument_id, raw=text)  # ty: ignore[invalid-argument-type]
 
-    tail = tail.strip()
-    if not tail:
-        raise CitationParseError(f"trailing comma with no paragraph reference in {text!r}")
+    # Article-shape tail: "Art. 111(1)(a)" — rulebook instruments attached
+    # to a PS (e.g. PS 1/26) carry CRR-style articles, not dotted
+    # paragraphs. Delegate to the shared article-body parser.
+    if _ARTICLE_KEYWORD.match(stripped):
+        return _parse_article_body(text, stripped, kind, instrument_id)
 
-    m = _PARAGRAPH_TAIL.match(tail)
-    if not m:
-        raise CitationParseError(
-            f"unrecognised tail '{tail}' in {text!r}; expected 'paragraph N' or 'paragraph N.N'"
+    # Dotted-paragraph tail: ", paragraph 4.1".
+    leading = rest.lstrip()
+    if leading.startswith(","):
+        tail = leading[1:].strip()
+        if not tail:
+            raise CitationParseError(f"trailing comma with no paragraph reference in {text!r}")
+        m = _PARAGRAPH_TAIL.match(tail)
+        if not m:
+            raise CitationParseError(
+                f"unrecognised tail '{tail}' in {text!r}; expected 'paragraph N' or 'paragraph N.N'"
+            )
+        section = tuple(m.group(1).split("."))
+        return Citation(
+            instrument=kind,  # ty: ignore[invalid-argument-type]
+            instrument_id=instrument_id,
+            section=section,
+            raw=text,
         )
 
-    section = tuple(m.group(1).split("."))
-    return Citation(
-        instrument=kind,  # ty: ignore[invalid-argument-type]
-        instrument_id=instrument_id,
-        section=section,
-        raw=text,
+    raise CitationParseError(
+        f"unrecognised tail '{stripped}' in {text!r}; expected 'Art. N(...)' or ', paragraph N.N'"
     )

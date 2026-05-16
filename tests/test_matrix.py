@@ -156,13 +156,13 @@ class TestRunMatrix:
             {
                 "instrument": ["CRR", "CRR"],
                 "instrument_id": [None, None],
-                "article": [113, 153],
+                "article": ["113", "153"],
                 "title": ["Standardised approach risk weights", "IRB risk weights"],
             },
             schema={
                 "instrument": pl.Utf8,
                 "instrument_id": pl.Utf8,
-                "article": pl.Int32,
+                "article": pl.Utf8,
                 "title": pl.Utf8,
             },
         )

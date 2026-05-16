@@ -13,7 +13,7 @@ from watchfire.index import covers, load_index
 # CRR articles that downstream projects (rwa_calculator) depend on. This
 # is a floor, not the full set — from v0.2 onwards the index covers the
 # whole UK-retained CRR. Keep this list small and meaningful.
-REQUIRED_CRR_ARTICLES = {4, 92, 107, 111, 113, 114, 142, 143, 153, 154, 166}
+REQUIRED_CRR_ARTICLES = {"4", "92", "107", "111", "113", "114", "142", "143", "153", "154", "166"}
 
 
 @pytest.fixture(scope="module")
@@ -82,7 +82,9 @@ class TestArticleCoverage:
         # depends on (75), (78), (79)). With point-level indexing we now
         # capture all definitions, not just the curated few.
         defs = index.filter(
-            (pl.col("instrument") == "CRR") & (pl.col("article") == 4) & (pl.col("paragraph") == 1)
+            (pl.col("instrument") == "CRR")
+            & (pl.col("article") == "4")
+            & (pl.col("paragraph") == "1")
         )
         points = set(defs.select("point").drop_nulls().to_series().to_list())
         assert {"75", "78", "79"}.issubset(points)
@@ -92,8 +94,24 @@ class TestArticleCoverage:
 class TestPraDocuments:
     def test_required_pra_documents_present(self, index):
         ids = set(index.select("instrument_id").drop_nulls().to_series().to_list())
-        for required in ("SS1/23", "PS9/24"):
+        for required in ("SS1/23", "PS9/24", "PS1/26"):
             assert required in ids, f"missing PRA document {required}"
+
+
+class TestPS126Shape:
+    """PS 1/26 carries CRR-style articles, not dotted-section paragraphs."""
+
+    def test_article_column_is_utf8(self, index):
+        assert index.schema["article"] == pl.Utf8
+
+    def test_ps126_has_article_rows(self, index):
+        ps126 = index.filter((pl.col("instrument") == "PS") & (pl.col("instrument_id") == "PS1/26"))
+        # At least one document-level row plus a meaningful number of
+        # article-shaped rows. 50 is a deliberately conservative floor —
+        # the actual count after a clean rebuild is much higher.
+        assert ps126.height > 50
+        articles = ps126.filter(pl.col("article").is_not_null()).select("article").unique().height
+        assert articles >= 1
 
 
 class TestCovers:
@@ -108,9 +126,12 @@ class TestCovers:
     def test_does_not_cover_unknown_article(self, index):
         assert not covers(index, Citation(instrument="CRR", article="999"))
 
-    def test_does_not_cover_alphanumeric_article(self, index):
-        # Alphanumeric articles aren't in the bundled index (column is
-        # Int32). They must surface as not-covered rather than erroring.
+    def test_alphanumeric_article_not_in_crr_index(self, index):
+        # The CRR scraper walks legislation.gov.uk's article TOC, which
+        # only exposes integer article numbers — inserted articles like
+        # "92a" are not currently fetched, so they should surface as
+        # not-covered. After the schema widening to Utf8 this is now a
+        # data-completeness assertion rather than a column-type guard.
         assert not covers(index, parse_citation("CRR Art. 92a"))
 
     def test_does_not_cover_unknown_instrument(self, index):

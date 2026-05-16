@@ -10,8 +10,10 @@ The schema is:
 
     instrument: Utf8         CRR | PRA_RULEBOOK | PS | SS | DELEGATED_REG
     instrument_id: Utf8?     "PS9/24", "Credit Risk", "2018/171", or null
-    article: Int32?          Article number for article-structured instruments
-    paragraph: Int32?        Numbered paragraph within an article
+    article: Utf8?           Article identifier for article-structured instruments
+                             (digit strings; letter-suffixed forms like "92a" are
+                             stored as-is)
+    paragraph: Utf8?         Numbered paragraph within an article
     point: Utf8?             Point label ("a", "75", ...)
     subpoint: Utf8?          Sub-point ("ii", ...)
     section: Utf8?           Dotted section path for PRA SS/PS, e.g. "2.5.1"
@@ -72,13 +74,7 @@ def covers(index: pl.DataFrame, citation: Citation) -> bool:
     if citation.instrument_id is not None:
         df = df.filter(pl.col("instrument_id") == citation.instrument_id)
     if citation.article is not None and "article" in df.columns:
-        if not citation.article.isdigit():
-            # The bundled index stores ``article`` as Int32, so
-            # alphanumeric identifiers (e.g. "92a") cannot match any
-            # row. Surface as not-covered until the index is rebuilt
-            # with a Utf8 article column.
-            return False
-        df = df.filter(pl.col("article") == int(citation.article))
+        df = df.filter(pl.col("article") == citation.article)
     return df.height > 0
 
 
@@ -95,9 +91,7 @@ def title_for(index: pl.DataFrame, citation: Citation) -> str | None:
     if citation.instrument_id is not None:
         df = df.filter(pl.col("instrument_id") == citation.instrument_id)
     if citation.article is not None and "article" in df.columns:
-        if not citation.article.isdigit():
-            return None
-        df = df.filter(pl.col("article") == int(citation.article))
+        df = df.filter(pl.col("article") == citation.article)
     if df.height == 0 or "title" not in df.columns:
         return None
     value = df.select("title").row(0)[0]

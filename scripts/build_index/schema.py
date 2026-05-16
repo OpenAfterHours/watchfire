@@ -21,8 +21,8 @@ SNAPSHOT_VERSION = date(2026, 5, 15)
 PARQUET_SCHEMA: dict[str, pl.DataType] = {
     "instrument": pl.Utf8,
     "instrument_id": pl.Utf8,
-    "article": pl.Int32,
-    "paragraph": pl.Int32,
+    "article": pl.Utf8,
+    "paragraph": pl.Utf8,
     "point": pl.Utf8,
     "subpoint": pl.Utf8,
     "section": pl.Utf8,
@@ -46,8 +46,8 @@ class Row:
 
     instrument: str
     instrument_id: str | None
-    article: int | None
-    paragraph: int | None
+    article: str | None
+    paragraph: str | None
     point: str | None
     subpoint: str | None
     section: str | None

@@ -279,6 +279,57 @@ class TestPRAPublications:
             parse_citation("SS1/23,")
 
 
+class TestPRAArticleShape:
+    """PS / SS documents that carry CRR-style articles (e.g. PS 1/26)."""
+
+    def test_ps_with_article(self):
+        c = parse_citation("PS1/26 Art. 111")
+        assert c.instrument == "PS"
+        assert c.instrument_id == "PS1/26"
+        assert c.article == "111"
+        assert c.paragraph is None
+        assert c.section is None
+
+    def test_ps_with_article_and_paragraph(self):
+        c = parse_citation("PS1/26 Art. 111(1)")
+        assert c.article == "111" and c.paragraph == "1"
+
+    def test_ps_with_full_path(self):
+        c = parse_citation("PS 1/26 Art. 111(1)(a)")
+        assert c.instrument == "PS"
+        assert c.instrument_id == "PS1/26"
+        assert c.article == "111"
+        assert c.paragraph == "1"
+        assert c.point == "a"
+
+    def test_ps_with_subpoint(self):
+        c = parse_citation("PS1/26 Art. 111(1)(a)(i)")
+        assert c.subpoint == "i"
+
+    def test_ps_article_alt_keyword(self):
+        c = parse_citation("PS1/26 Article 111")
+        assert c.article == "111"
+
+    def test_ps_article_lowercase(self):
+        c = parse_citation("ps1/26 art. 111(1)")
+        assert c.instrument_id == "PS1/26"
+        assert c.article == "111" and c.paragraph == "1"
+
+    def test_ss_with_article(self):
+        c = parse_citation("SS1/23 Art. 5")
+        assert c.instrument == "SS"
+        assert c.instrument_id == "SS1/23"
+        assert c.article == "5"
+
+    def test_ps_article_missing_number_errors(self):
+        with pytest.raises(CitationParseError, match="article number"):
+            parse_citation("PS1/26 Art.")
+
+    def test_ps_alphanumeric_article(self):
+        c = parse_citation("PS1/26 Art. 92a(1)(b)")
+        assert c.article == "92a" and c.paragraph == "1" and c.point == "b"
+
+
 # ---------------------------------------------------------------------------
 # Delegated Regulations
 # ---------------------------------------------------------------------------
@@ -382,6 +433,9 @@ class TestCitationObject:
             "SS1/23, paragraph 2.5",
             "PS1/26, paragraph 123B",
             "SS1/23, paragraph 2.5a",
+            "PS1/26 Art. 111",
+            "PS1/26 Art. 111(1)(a)",
+            "PS1/26 Art. 111(1)(a)(i)",
         ]:
             c = parse_citation(s)
             assert parse_citation(c.canonical()) == c
