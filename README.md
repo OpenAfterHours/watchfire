@@ -158,6 +158,8 @@ The keyword for an article accepts `Art`, `Art.`, `Article`, or `article`
 in any case. Whitespace is normalised. Letter suffixes are accepted on
 article numbers, on CRR paragraph numbers, and on dotted segments of
 PS/SS paragraph identifiers; each segment must still start with digits.
+Article suffixes are canonicalised to lowercase (`92A` parses as `92a`)
+to match the bundled index.
 PRA Rulebook section paths are digits-only. Anything that doesn't parse
 is a `CitationParseError`, which `watchfire check` reports with the
 offending input — these are code-review events, not silent skips.

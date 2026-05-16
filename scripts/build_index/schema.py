@@ -14,7 +14,7 @@ from datetime import date
 import polars as pl
 
 # Pinned snapshot date applied to every row. Bump per rebuild.
-SNAPSHOT_VERSION = date(2026, 5, 15)
+SNAPSHOT_VERSION = date(2026, 5, 16)
 
 # Polars dtypes for the index parquet. Keep in lockstep with the schema
 # block in ``src/watchfire/index.py``.
