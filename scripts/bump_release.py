@@ -8,15 +8,18 @@ run if the existing ``## [Unreleased]`` section has no entries; pass
 ``--allow-empty-changelog`` to override.
 
 The package version itself lives in git tags (``hatch-vcs``) — there are no
-version strings to rewrite. This script does not commit, tag, or push;
-inspect ``git diff`` after it runs and create the release commit yourself.
+version strings to rewrite. After promoting the changelog, the script
+commits ``CHANGELOG.md`` with message ``chore: release <ver>`` and creates
+a lightweight ``v<ver>`` tag locally. Pushing to the remote is left to
+you: ``git push origin master --tags``.
 
 Run from the repo root:
 
     uv run python scripts/bump_release.py 0.2.0
     uv run python scripts/bump_release.py 0.2.0 --skip-tests   # gates off for a dry run
 
-A ``--dry-run`` flag prints the planned change without touching files.
+A ``--dry-run`` flag prints the planned change without touching files
+or git state.
 """
 
 from __future__ import annotations
@@ -108,6 +111,41 @@ def check_clean_tree() -> None:
         )
 
 
+def check_tag_available(tag: str) -> None:
+    """Refuse to release if ``tag`` already exists locally."""
+
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", f"refs/tags/{tag}"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        raise BumpError(
+            f"tag {tag} already exists. Pick a different version, or delete the tag with "
+            f"`git tag -d {tag}` if it was created in error."
+        )
+
+
+def commit_and_tag(bump: Bump) -> None:
+    """Commit the promoted CHANGELOG and create a lightweight ``v<ver>`` tag."""
+
+    tag = f"v{bump.new}"
+    changelog_rel = CHANGELOG.relative_to(REPO_ROOT).as_posix()
+    steps: list[tuple[str, list[str]]] = [
+        ("git add CHANGELOG.md", ["git", "add", changelog_rel]),
+        ("git commit", ["git", "commit", "-m", f"chore: release {bump.new}"]),
+        (f"git tag {tag}", ["git", "tag", tag]),
+    ]
+    for label, cmd in steps:
+        result = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True, check=False)
+        if result.returncode != 0:
+            stderr = result.stderr.strip() or result.stdout.strip()
+            raise BumpError(f"{label} failed: {stderr}")
+    print(f"  committed CHANGELOG.md and tagged {tag}")
+
+
 def run_gates() -> None:
     for label, cmd in GATES:
         print(f"==> {label}")
@@ -169,11 +207,13 @@ def main(argv: list[str] | None = None) -> int:
         bump = Bump(new=args.version)
         print(f"preparing watchfire release: {bump.new}")
 
+        check_tag_available(f"v{bump.new}")
+
         if not args.allow_empty_changelog:
             check_changelog_has_entries()
 
         if args.dry_run:
-            print("dry run: not running gates, not writing files")
+            print("dry run: not running gates, not writing files, not tagging")
             return 0
 
         if not args.skip_tests:
@@ -182,10 +222,9 @@ def main(argv: list[str] | None = None) -> int:
             print("warning: --skip-tests was set; gates were not run")
 
         _promote_changelog(bump, today=date.today())
+        commit_and_tag(bump)
         print(
-            f"\ndone. Review with `git diff`, then commit, tag, and push:\n"
-            f"    git commit -am 'chore: release {bump.new}'\n"
-            f"    git tag v{bump.new}\n"
+            f"\ndone. Review with `git show v{bump.new}`, then push:\n"
             f"    git push origin master --tags\n"
             f"Then create a GitHub Release from the v{bump.new} tag — "
             f"that triggers publish.yml."
